@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>골프존 내기 계산기</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif;
+    background: #1a2332;
+    color: #e8edf3;
+    min-height: 100vh;
+  }
+
+  /* ── Sticky scoreboard ── */
+  #scoreboard {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #0f1923;
+    border-bottom: 2px solid #2d4a6e;
+    padding: 10px 12px 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+  }
+  #scoreboard h2 {
+    text-align: center;
+    font-size: 13px;
+    color: #7a9fc2;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .score-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .score-card {
+    background: #1e3048;
+    border-radius: 10px;
+    padding: 8px 4px;
+    text-align: center;
+    border: 1px solid #2d4a6e;
+    transition: border-color 0.2s;
+  }
+  .score-card .name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #a8c8e8;
+    margin-bottom: 4px;
+  }
+  .score-card .amount {
+    font-size: 16px;
+    font-weight: 800;
+    transition: color 0.3s;
+  }
+  .score-card .amount.plus { color: #4ec97a; }
+  .score-card .amount.minus { color: #ff6b6b; }
+  .score-card .amount.zero { color: #7a9fc2; }
+
+  /* ── Main content ── */
+  main { padding: 12px; max-width: 600px; margin: 0 auto; }
+
+  /* ── Hole card ── */
+  .hole-card {
+    background: #1e2d40;
+    border-radius: 14px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    border: 1px solid #2a3f58;
+  }
+  .hole-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: #162336;
+    cursor: pointer;
+    user-select: none;
+  }
+  .hole-header:active { background: #1a2d42; }
+  .hole-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #d0e8ff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hole-badges { display: flex; gap: 4px; flex-wrap: wrap; }
+  .badge {
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+  .badge-birdie { background: #1a4a2e; color: #4ec97a; border: 1px solid #4ec97a; }
+  .badge-yangpa { background: #4a1a1a; color: #ff6b6b; border: 1px solid #ff6b6b; }
+  .badge-eagle  { background: #1a3a4a; color: #4ec9c9; border: 1px solid #4ec9c9; }
+  .hole-toggle { color: #5a7a9a; font-size: 18px; transition: transform 0.2s; }
+  .hole-toggle.open { transform: rotate(180deg); }
+
+  .hole-body { padding: 12px 14px; }
+
+  /* Par + score inputs */
+  .input-row {
+    display: grid;
+    grid-template-columns: 60px repeat(4, 1fr);
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .input-label {
+    font-size: 11px;
+    color: #5a7a9a;
+    text-align: center;
+    margin-bottom: 3px;
+  }
+  .input-col { display: flex; flex-direction: column; align-items: center; }
+  .score-input {
+    width: 100%;
+    background: #132030;
+    border: 1.5px solid #2a4060;
+    border-radius: 8px;
+    color: #e8edf3;
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+    padding: 8px 4px;
+    outline: none;
+    -moz-appearance: textfield;
+    appearance: textfield;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .score-input::-webkit-outer-spin-button,
+  .score-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .score-input:focus { border-color: #4a8fc2; background: #1a2d42; }
+  .score-input.birdie { border-color: #4ec97a; background: #122a1e; }
+  .score-input.eagle  { border-color: #4ec9c9; background: #0e2530; }
+  .score-input.yangpa { border-color: #ff6b6b; background: #2a1212; }
+  .score-input.par    { border-color: #5a8abf; }
+
+  /* Hole results */
+  .hole-result {
+    background: #132030;
+    border-radius: 10px;
+    padding: 10px;
+    margin-top: 4px;
+  }
+  .result-title {
+    font-size: 11px;
+    color: #5a7a9a;
+    text-align: center;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+  }
+  .result-cell {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 2px;
+    border-radius: 6px;
+    background: #1a2d42;
+  }
+  .result-cell .r-name { font-size: 11px; color: #7a9fc2; margin-bottom: 2px; }
+  .result-cell .r-amt { }
+  .result-cell.plus  { background: #142a1e; }
+  .result-cell.minus { background: #2a1414; }
+  .result-cell .r-amt.plus  { color: #4ec97a; }
+  .result-cell .r-amt.minus { color: #ff6b6b; }
+  .result-cell .r-amt.zero  { color: #5a7a9a; }
+
+  /* ── Section separator ── */
+  .section-title {
+    text-align: center;
+    color: #5a7a9a;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 8px 0 4px;
+  }
+
+  /* ── Final settlement ── */
+  #settlement {
+    background: #1e2d40;
+    border-radius: 14px;
+    padding: 14px;
+    margin-top: 8px;
+    border: 1px solid #2a3f58;
+  }
+  #settlement h3 {
+    text-align: center;
+    font-size: 14px;
+    color: #a8c8e8;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+  }
+  .settle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #132030;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 6px;
+    font-size: 14px;
+  }
+  .settle-arrow { color: #5a7a9a; font-size: 16px; }
+  .settle-from { color: #ff8f8f; font-weight: 700; }
+  .settle-to   { color: #4ec97a; font-weight: 700; }
+  .settle-amt  { color: #f0c060; font-weight: 800; font-size: 16px; }
+  .no-settle   { color: #5a7a9a; text-align: center; font-size: 13px; padding: 8px; }
+
+  /* ── Reset button ── */
+  #resetBtn {
+    display: block;
+    width: 100%;
+    margin: 16px 0 24px;
+    padding: 14px;
+    background: #2a1a1a;
+    color: #ff6b6b;
+    border: 1.5px solid #6b2020;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+  }
+  #resetBtn:active { background: #3a1a1a; }
+
+  /* ── Holbar progress ── */
+  #progressBar {
+    height: 4px;
+    background: #0f1923;
+    position: sticky;
+    top: 0;
+    z-index: 101;
+  }
+  #progressFill {
+    height: 100%;
+    background: linear-gradient(90deg, #2d6a9f, #4ec97a);
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  /* ── Hole number indicator ── */
+  .hole-num-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #2d4a6e;
+    color: #a8c8e8;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .hole-num-badge.front { background: #1a4060; }
+  .hole-num-badge.back  { background: #2a2060; }
+</style>
+</head>
+<body>
+
+<div id="progressBar"><div id="progressFill"></div></div>
+
+<div id="scoreboard">
+  <h2>💰 누적 잔액</h2>
+  <div class="score-grid" id="scoreGrid"></div>
+</div>
+
+<main>
+  <div id="holesContainer"></div>
+
+  <div class="section-title">⛳ 최종 정산</div>
+  <div id="settlement">
+    <h3>정산 내역</h3>
+    <div id="settlementBody"><p class="no-settle">점수를 입력하면 정산이 계산됩니다.</p></div>
+  </div>
+
+  <button id="resetBtn" onclick="resetAll()">🔄 새 게임 시작 (초기화)</button>
+</main>
+
+<script>
+// ─────────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────────
+const PLAYERS = ['정범', '승우', '재형', '만규'];
+const N = PLAYERS.length;
+const HOLES = 18;
+const UNIT = 1000; // 타당 천원
+
+// gameData[hole] = { par: number, scores: [p0,p1,p2,p3] }  (null if not entered)
+let gameData = Array.from({length: HOLES}, () => ({ par: 4, scores: [null, null, null, null] }));
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+function init() {
+  loadFromStorage();
+  buildScoreboard();
+  buildHoles();
+  updateAll();
+}
+
+function buildScoreboard() {
+  const grid = document.getElementById('scoreGrid');
+  grid.innerHTML = PLAYERS.map((name, i) => `
+    <div class="score-card" id="sc-${i}">
+      <div class="name">${name}</div>
+      <div class="amount zero" id="sc-amt-${i}">₩0</div>
+    </div>
+  `).join('');
+}
+
+function buildHoles() {
+  const container = document.getElementById('holesContainer');
+  container.innerHTML = '';
+  for (let h = 0; h < HOLES; h++) {
+    const half = h < 9 ? 'front' : 'back';
+    const holeNum = h + 1;
+    const d = gameData[h];
+
+    const card = document.createElement('div');
+    card.className = 'hole-card';
+    card.id = `hole-card-${h}`;
+
+    card.innerHTML = `
+      <div class="hole-header" onclick="toggleHole(${h})">
+        <div class="hole-title">
+          <span class="hole-num-badge ${half}">${holeNum}</span>
+          <span>${holeNum <= 9 ? '전반' : '후반'} ${holeNum <= 9 ? holeNum : holeNum - 9}홀</span>
+          <div class="hole-badges" id="badges-${h}"></div>
+        </div>
+        <span class="hole-toggle" id="toggle-${h}">▼</span>
+      </div>
+      <div class="hole-body" id="body-${h}" style="display:${h===0?'block':'none'}">
+        <div class="input-row">
+          <div class="input-col">
+            <div class="input-label">파</div>
+            <input class="score-input" id="par-${h}" type="number" min="3" max="5"
+              value="${d.par}" onchange="setPar(${h},this.value)" style="font-size:16px;">
+          </div>
+          ${PLAYERS.map((name, i) => `
+            <div class="input-col">
+              <div class="input-label">${name}</div>
+              <input class="score-input" id="score-${h}-${i}" type="number" min="1" max="12"
+                value="${d.scores[i] !== null ? d.scores[i] : ''}"
+                placeholder="-"
+                oninput="setScore(${h},${i},this.value)">
+            </div>
+          `).join('')}
+        </div>
+        <div id="hole-result-${h}"></div>
+      </div>
+    `;
+    container.appendChild(card);
+  }
+}
+
+// ─────────────────────────────────────────────
+// EVENT HANDLERS
+// ─────────────────────────────────────────────
+function toggleHole(h) {
+  const body = document.getElementById(`body-${h}`);
+  const tog  = document.getElementById(`toggle-${h}`);
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  tog.classList.toggle('open', !open);
+}
+
+function setPar(h, val) {
+  const v = parseInt(val);
+  if (isNaN(v) || v < 3 || v > 5) return;
+  gameData[h].par = v;
+  saveToStorage();
+  updateHole(h);
+  updateAll();
+}
+
+function setScore(h, playerIdx, val) {
+  const v = val === '' ? null : parseInt(val);
+  gameData[h].scores[playerIdx] = (v !== null && isNaN(v)) ? null : v;
+  saveToStorage();
+  updateHole(h);
+  updateAll();
+}
+
+// ─────────────────────────────────────────────
+// CALCULATION
+// ─────────────────────────────────────────────
+
+// Returns delta array [p0, p1, p2, p3] for a single hole
+function calcHoleDelta(holeIdx) {
+  const { par, scores } = gameData[holeIdx];
+  const delta = [0, 0, 0, 0];
+
+  // Need all 4 scores to calculate
+  if (scores.some(s => s === null)) return delta;
+
+  const isBirdie = scores.map(s => s <= par - 1);
+  const isYangpa = scores.map(s => s >= par + 2);
+
+  // All pairs
+  for (let a = 0; a < N; a++) {
+    for (let b = a + 1; b < N; b++) {
+      const diff = scores[a] - scores[b]; // positive → b is better
+      if (diff === 0) continue;
+
+      const winner = diff > 0 ? b : a;
+      const loser  = diff > 0 ? a : b;
+      const strokes = Math.abs(diff);
+
+      let mult = 1;
+      // Birdie bonus: winner birdied, loser didn't
+      if (isBirdie[winner] && !isBirdie[loser]) mult *= 2;
+      // Yangpa penalty: loser got yangpa, winner didn't
+      if (isYangpa[loser] && !isYangpa[winner]) mult *= 2;
+
+      const amount = strokes * UNIT * mult;
+      delta[winner] += amount;
+      delta[loser]  -= amount;
+    }
+  }
+  return delta;
+}
+
+function calcTotals() {
+  const totals = [0, 0, 0, 0];
+  for (let h = 0; h < HOLES; h++) {
+    const d = calcHoleDelta(h);
+    for (let i = 0; i < N; i++) totals[i] += d[i];
+  }
+  return totals;
+}
+
+// ─────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────
+function updateAll() {
+  const totals = calcTotals();
+
+  // Scoreboard
+  for (let i = 0; i < N; i++) {
+    const el = document.getElementById(`sc-amt-${i}`);
+    el.textContent = formatWon(totals[i]);
+    el.className = 'amount ' + signClass(totals[i]);
+  }
+
+  // Progress bar
+  const filled = gameData.filter(h => h.scores.every(s => s !== null)).length;
+  document.getElementById('progressFill').style.width = (filled / HOLES * 100) + '%';
+
+  // Settlement
+  renderSettlement(totals);
+}
+
+function updateHole(h) {
+  const { par, scores } = gameData[h];
+  const delta = calcHoleDelta(h);
+  const isBirdie = scores.map(s => s !== null && s <= par - 1);
+  const isYangpa = scores.map(s => s !== null && s >= par + 2);
+  const isEagle  = scores.map(s => s !== null && s <= par - 2);
+
+  // Update score input colors
+  for (let i = 0; i < N; i++) {
+    const inp = document.getElementById(`score-${h}-${i}`);
+    if (scores[i] === null) { inp.className = 'score-input'; continue; }
+    if (isEagle[i])       inp.className = 'score-input eagle';
+    else if (isBirdie[i]) inp.className = 'score-input birdie';
+    else if (isYangpa[i]) inp.className = 'score-input yangpa';
+    else if (scores[i] === par) inp.className = 'score-input par';
+    else inp.className = 'score-input';
+  }
+
+  // Badges
+  const badgesEl = document.getElementById(`badges-${h}`);
+  const anyScore = scores.some(s => s !== null);
+  if (anyScore) {
+    let html = '';
+    if (isEagle.some(Boolean))  html += `<span class="badge badge-eagle">이글🦅</span>`;
+    else if (isBirdie.some(Boolean)) html += `<span class="badge badge-birdie">버디🐦</span>`;
+    if (isYangpa.some(Boolean)) html += `<span class="badge badge-yangpa">양파🧅</span>`;
+    badgesEl.innerHTML = html;
+  } else {
+    badgesEl.innerHTML = '';
+  }
+
+  // Hole result
+  const resultEl = document.getElementById(`hole-result-${h}`);
+  const allEntered = scores.every(s => s !== null);
+  if (!allEntered) {
+    resultEl.innerHTML = '';
+    return;
+  }
+
+  resultEl.innerHTML = `
+    <div class="hole-result">
+      <div class="result-title">홀 정산</div>
+      <div class="result-grid">
+        ${PLAYERS.map((name, i) => `
+          <div class="result-cell ${delta[i] > 0 ? 'plus' : delta[i] < 0 ? 'minus' : ''}">
+            <div class="r-name">${name}</div>
+            <div class="r-amt ${signClass(delta[i])}">${formatWon(delta[i])}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderSettlement(totals) {
+  // Debt simplification: find min transactions
+  const bal = totals.slice(); // copy
+  const transactions = [];
+
+  for (let round = 0; round < 20; round++) {
+    let maxIdx = 0, minIdx = 0;
+    for (let i = 1; i < N; i++) {
+      if (bal[i] > bal[maxIdx]) maxIdx = i;
+      if (bal[i] < bal[minIdx]) minIdx = i;
+    }
+    if (Math.abs(bal[maxIdx]) < 1 || Math.abs(bal[minIdx]) < 1) break;
+    const amt = Math.min(bal[maxIdx], -bal[minIdx]);
+    if (amt < 1) break;
+    transactions.push({ from: minIdx, to: maxIdx, amount: Math.round(amt) });
+    bal[maxIdx] -= amt;
+    bal[minIdx] += amt;
+  }
+
+  const body = document.getElementById('settlementBody');
+  if (transactions.length === 0) {
+    body.innerHTML = '<p class="no-settle">아직 정산할 내역이 없습니다.</p>';
+    return;
+  }
+
+  body.innerHTML = transactions.map(t => `
+    <div class="settle-row">
+      <span class="settle-from">${PLAYERS[t.from]}</span>
+      <span class="settle-arrow">→</span>
+      <span class="settle-to">${PLAYERS[t.to]}</span>
+      <span class="settle-amt">${t.amount.toLocaleString()}원</span>
+    </div>
+  `).join('');
+}
+
+// ─────────────────────────────────────────────
+// UTILS
+// ─────────────────────────────────────────────
+function formatWon(v) {
+  if (v === 0) return '₩0';
+  const sign = v > 0 ? '+' : '-';
+  return sign + '₩' + Math.abs(v).toLocaleString();
+}
+
+function signClass(v) {
+  return v > 0 ? 'plus' : v < 0 ? 'minus' : 'zero';
+}
+
+// ─────────────────────────────────────────────
+// STORAGE
+// ─────────────────────────────────────────────
+function saveToStorage() {
+  try { localStorage.setItem('golfBetting', JSON.stringify(gameData)); } catch(e) {}
+}
+
+function loadFromStorage() {
+  try {
+    const saved = localStorage.getItem('golfBetting');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length === HOLES) {
+        gameData = parsed;
+      }
+    }
+  } catch(e) {}
+}
+
+function resetAll() {
+  if (!confirm('정말 초기화하시겠습니까? 모든 데이터가 삭제됩니다.')) return;
+  gameData = Array.from({length: HOLES}, () => ({ par: 4, scores: [null, null, null, null] }));
+  saveToStorage();
+  buildHoles();
+  updateAll();
+  // Open first hole
+  document.getElementById(`body-0`).style.display = 'block';
+  document.getElementById(`toggle-0`).classList.add('open');
+}
+
+// ─────────────────────────────────────────────
+// START
+// ─────────────────────────────────────────────
+init();
+
+// Open first hole toggle icon
+document.addEventListener('DOMContentLoaded', () => {
+  const tog = document.getElementById('toggle-0');
+  if (tog) tog.classList.add('open');
+});
+</script>
+</body>
+</html>
