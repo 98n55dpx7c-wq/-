@@ -107,7 +107,7 @@
   /* Par + score inputs */
   .input-row {
     display: grid;
-    grid-template-columns: 60px repeat(4, 1fr);
+    grid-template-columns: 70px repeat(4, 1fr);
     gap: 6px;
     align-items: center;
     margin-bottom: 10px;
@@ -119,28 +119,28 @@
     margin-bottom: 3px;
   }
   .input-col { display: flex; flex-direction: column; align-items: center; }
-  .score-input {
-    width: 100%;
-    background: #132030;
-    border: 1.5px solid #2a4060;
-    border-radius: 8px;
-    color: #e8edf3;
-    font-size: 18px;
-    font-weight: 700;
-    text-align: center;
-    padding: 8px 4px;
-    outline: none;
-    -moz-appearance: textfield;
-    appearance: textfield;
-    transition: border-color 0.2s, background 0.2s;
+
+  /* Stepper */
+  .stepper { display: flex; align-items: center; gap: 3px; justify-content: center; }
+  .step-btn {
+    width: 32px; height: 36px; border-radius: 8px; border: none;
+    font-size: 20px; font-weight: 700; cursor: pointer;
+    background: #2a3f58; color: #e8edf3;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none; touch-action: manipulation;
+    flex-shrink: 0;
   }
-  .score-input::-webkit-outer-spin-button,
-  .score-input::-webkit-inner-spin-button { -webkit-appearance: none; }
-  .score-input:focus { border-color: #4a8fc2; background: #1a2d42; }
-  .score-input.birdie { border-color: #4ec97a; background: #122a1e; }
-  .score-input.eagle  { border-color: #4ec9c9; background: #0e2530; }
-  .score-input.yangpa { border-color: #ff6b6b; background: #2a1212; }
-  .score-input.par    { border-color: #5a8abf; }
+  .step-btn:active { background: #3a5470; }
+  .step-val {
+    min-width: 28px; text-align: center; font-size: 19px; font-weight: 700;
+    color: #e8edf3; line-height: 36px;
+  }
+  .step-val.birdie { color: #4ec97a; }
+  .step-val.eagle  { color: #4ec9c9; }
+  .step-val.yangpa { color: #ff6b6b; }
+  .step-val.par    { color: #5a8abf; }
+  .step-val.empty  { color: #3a5470; }
 
   /* Hole results */
   .hole-result {
@@ -347,16 +347,20 @@ function buildHoles() {
         <div class="input-row">
           <div class="input-col">
             <div class="input-label">파</div>
-            <input class="score-input" id="par-${h}" type="number" min="3" max="5"
-              value="${d.par}" onchange="setPar(${h},this.value)" style="font-size:16px;">
+            <div class="stepper">
+              <button class="step-btn" ontouchstart="" onclick="stepPar(${h},-1)">−</button>
+              <span class="step-val" id="par-${h}">${d.par}</span>
+              <button class="step-btn" ontouchstart="" onclick="stepPar(${h},1)">+</button>
+            </div>
           </div>
           ${PLAYERS.map((name, i) => `
             <div class="input-col">
               <div class="input-label">${name}</div>
-              <input class="score-input" id="score-${h}-${i}" type="number" min="1" max="12"
-                value="${d.scores[i] !== null ? d.scores[i] : ''}"
-                placeholder="-"
-                oninput="setScore(${h},${i},this.value)">
+              <div class="stepper">
+                <button class="step-btn" ontouchstart="" onclick="stepScore(${h},${i},-1)">−</button>
+                <span class="step-val ${d.scores[i] !== null ? '' : 'empty'}" id="score-${h}-${i}">${d.scores[i] !== null ? d.scores[i] : '−'}</span>
+                <button class="step-btn" ontouchstart="" onclick="stepScore(${h},${i},1)">+</button>
+              </div>
             </div>
           `).join('')}
         </div>
@@ -378,18 +382,27 @@ function toggleHole(h) {
   tog.classList.toggle('open', !open);
 }
 
-function setPar(h, val) {
-  const v = parseInt(val);
-  if (isNaN(v) || v < 3 || v > 5) return;
-  gameData[h].par = v;
+function stepPar(h, dir) {
+  const newVal = gameData[h].par + dir;
+  if (newVal < 3 || newVal > 5) return;
+  gameData[h].par = newVal;
+  document.getElementById(`par-${h}`).textContent = newVal;
   saveToStorage();
   updateHole(h);
   updateAll();
 }
 
-function setScore(h, playerIdx, val) {
-  const v = val === '' ? null : parseInt(val);
-  gameData[h].scores[playerIdx] = (v !== null && isNaN(v)) ? null : v;
+function stepScore(h, i, dir) {
+  const cur = gameData[h].scores[i];
+  let next;
+  if (cur === null) {
+    if (dir < 0) return;
+    next = gameData[h].par;
+  } else {
+    next = cur + dir;
+    if (next < 1 || next > 15) return;
+  }
+  gameData[h].scores[i] = next;
   saveToStorage();
   updateHole(h);
   updateAll();
@@ -471,15 +484,20 @@ function updateHole(h) {
   const isYangpa = scores.map(s => s !== null && s >= par + 2);
   const isEagle  = scores.map(s => s !== null && s <= par - 2);
 
-  // Update score input colors
+  // Update score display colors
   for (let i = 0; i < N; i++) {
-    const inp = document.getElementById(`score-${h}-${i}`);
-    if (scores[i] === null) { inp.className = 'score-input'; continue; }
-    if (isEagle[i])       inp.className = 'score-input eagle';
-    else if (isBirdie[i]) inp.className = 'score-input birdie';
-    else if (isYangpa[i]) inp.className = 'score-input yangpa';
-    else if (scores[i] === par) inp.className = 'score-input par';
-    else inp.className = 'score-input';
+    const el = document.getElementById(`score-${h}-${i}`);
+    if (scores[i] === null) {
+      el.className = 'step-val empty';
+      el.textContent = '−';
+      continue;
+    }
+    el.textContent = scores[i];
+    if (isEagle[i])       el.className = 'step-val eagle';
+    else if (isBirdie[i]) el.className = 'step-val birdie';
+    else if (isYangpa[i]) el.className = 'step-val yangpa';
+    else if (scores[i] === par) el.className = 'step-val par';
+    else el.className = 'step-val';
   }
 
   // Badges
