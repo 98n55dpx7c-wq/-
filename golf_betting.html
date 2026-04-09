@@ -505,6 +505,96 @@
     text-align: center;
   }
   #settingsBtn:active { background: #1a2d40; }
+
+  /* ── Per-hole mini amounts in header ── */
+  .hole-header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .hole-mini-amounts {
+    display: flex;
+    gap: 3px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 160px;
+  }
+  .mini-amt {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 4px;
+    background: #0e1e2e;
+    white-space: nowrap;
+  }
+  .mini-amt.plus  { color: #4ec97a; }
+  .mini-amt.minus { color: #ff6b6b; }
+  .mini-amt.zero  { color: #5a7a9a; }
+
+  /* ── Settlement rankings ── */
+  .rank-section { margin-bottom: 16px; }
+  .rank-section-title {
+    font-size: 11px;
+    color: #5a7a9a;
+    text-align: center;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .rank-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    background: #132030;
+    border: 1px solid transparent;
+  }
+  .rank-row.rank-1st { background: #1a2a10; border-color: #4a8a20; }
+  .rank-row.rank-last { background: #2a1010; border-color: #6a2020; }
+  .rank-medal { font-size: 18px; flex-shrink: 0; width: 26px; text-align: center; }
+  .rank-name  { flex: 1; font-size: 15px; font-weight: 700; color: #d0e8ff; }
+  .rank-score { font-size: 12px; color: #7a9fc2; margin-right: 4px; }
+  .rank-amt   { font-size: 15px; font-weight: 800; }
+  .rank-amt.plus  { color: #4ec97a; }
+  .rank-amt.minus { color: #ff6b6b; }
+  .rank-amt.zero  { color: #5a7a9a; }
+  .settle-divider {
+    height: 1px;
+    background: #2a3f58;
+    margin: 14px 0;
+  }
+  .settle-subtitle {
+    font-size: 11px;
+    color: #5a7a9a;
+    text-align: center;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  /* ── Scoreboard improvements ── */
+  #scoreboard h2 { margin-bottom: 6px; }
+  .score-card {
+    background: linear-gradient(135deg, #1e3048 0%, #162336 100%);
+  }
+  .score-card .amount { font-size: 15px; }
+
+  /* ── Progress bar above scoreboard ── */
+  #progressBar {
+    top: 0;
+  }
+
+  /* ── Hole card improvements ── */
+  .hole-card { box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+  .hole-header { transition: background 0.15s; }
+
+  /* ── Settings/reset button improvements ── */
+  #settingsBtn { letter-spacing: 0.3px; }
+  #resetBtn { transition: background 0.15s, border-color 0.15s; }
+  #resetBtn:hover { background: #331a1a; border-color: #8b2020; }
 </style>
 </head>
 <body>
@@ -665,7 +755,6 @@
 
     <div class="section-title">⛳ 최종 정산</div>
     <div id="settlement">
-      <h3>정산 내역</h3>
       <div id="settlementBody"><p class="no-settle">점수를 입력하면 정산이 계산됩니다.</p></div>
     </div>
 
@@ -947,7 +1036,10 @@ function buildHoles() {
           <span>${holeNum <= 9 ? '전반' : '후반'} ${holeNum <= 9 ? holeNum : holeNum - 9}홀</span>
           <div class="hole-badges" id="badges-${h}"></div>
         </div>
-        <span class="hole-toggle" id="toggle-${h}">▼</span>
+        <div class="hole-header-right">
+          <div class="hole-mini-amounts" id="mini-${h}"></div>
+          <span class="hole-toggle" id="toggle-${h}">▼</span>
+        </div>
       </div>
       <div class="hole-body" id="body-${h}" style="display:${h===0?'block':'none'}">
         <div class="input-row" style="grid-template-columns: 60px repeat(${N}, 1fr)">
@@ -1200,6 +1292,7 @@ function updateHole(h) {
   const resultEl = document.getElementById(`hole-result-${h}`);
   if (!scores.every(s => s !== null)) {
     resultEl.innerHTML = '';
+    clearMiniAmounts(h);
     return;
   }
 
@@ -1222,13 +1315,46 @@ function updateHole(h) {
       </div>
     </div>
   `;
+
+  // Update mini amounts in hole header
+  const miniEl = document.getElementById(`mini-${h}`);
+  if (miniEl) {
+    miniEl.innerHTML = CONFIG.players.map((name, i) =>
+      `<span class="mini-amt ${signClass(delta[i])}" title="${escapeHtml(name)}">${formatWonShort(delta[i])}</span>`
+    ).join('');
+  }
+}
+
+// Clear mini amounts when not all scores are in (called from updateHole early return)
+function clearMiniAmounts(h) {
+  const miniEl = document.getElementById(`mini-${h}`);
+  if (miniEl) miniEl.innerHTML = '';
 }
 
 function renderSettlement(totals) {
   const N = CONFIG.players.length;
+
+  // Build rankings
+  const ranked = CONFIG.players
+    .map((name, i) => ({ name, total: totals[i], idx: i }))
+    .sort((a, b) => b.total - a.total);
+  const medals = ['🥇', '🥈', '🥉', '4위', '5위', '6위'];
+  const hasAnyScore = totals.some(t => t !== 0);
+
+  const rankHtml = ranked.map((p, rank) => {
+    const cls = rank === 0 && p.total > 0 ? 'rank-1st'
+              : rank === ranked.length - 1 && p.total < 0 ? 'rank-last' : '';
+    return `
+      <div class="rank-row ${cls}">
+        <span class="rank-medal">${medals[rank] || (rank + 1) + '위'}</span>
+        <span class="rank-name">${escapeHtml(p.name)}</span>
+        <span class="rank-amt ${signClass(p.total)}">${formatWon(p.total)}</span>
+      </div>`;
+  }).join('');
+
+  // Build transactions
   const bal = totals.slice();
   const transactions = [];
-
   for (let round = 0; round < 20; round++) {
     let maxIdx = 0, minIdx = 0;
     for (let i = 1; i < N; i++) {
@@ -1244,19 +1370,31 @@ function renderSettlement(totals) {
   }
 
   const body = document.getElementById('settlementBody');
-  if (transactions.length === 0) {
-    body.innerHTML = '<p class="no-settle">아직 정산할 내역이 없습니다.</p>';
+
+  if (!hasAnyScore) {
+    body.innerHTML = '<p class="no-settle">점수를 입력하면 정산이 계산됩니다.</p>';
     return;
   }
 
-  body.innerHTML = transactions.map(t => `
-    <div class="settle-row">
-      <span class="settle-from">${escapeHtml(CONFIG.players[t.from])}</span>
-      <span class="settle-arrow">→</span>
-      <span class="settle-to">${escapeHtml(CONFIG.players[t.to])}</span>
-      <span class="settle-amt">${t.amount.toLocaleString()}원</span>
+  const txHtml = transactions.length === 0
+    ? '<p class="no-settle">모두 동점 — 정산 없음</p>'
+    : transactions.map(t => `
+        <div class="settle-row">
+          <span class="settle-from">${escapeHtml(CONFIG.players[t.from])}</span>
+          <span class="settle-arrow">→</span>
+          <span class="settle-to">${escapeHtml(CONFIG.players[t.to])}</span>
+          <span class="settle-amt">${t.amount.toLocaleString()}원</span>
+        </div>`).join('');
+
+  body.innerHTML = `
+    <div class="rank-section">
+      <div class="rank-section-title">순위</div>
+      ${rankHtml}
     </div>
-  `).join('');
+    <div class="settle-divider"></div>
+    <div class="settle-subtitle">정산 내역</div>
+    ${txHtml}
+  `;
 }
 
 // ─────────────────────────────────────────────
@@ -1265,6 +1403,14 @@ function renderSettlement(totals) {
 function formatWon(v) {
   if (v === 0) return '₩0';
   return (v > 0 ? '+' : '-') + '₩' + Math.abs(v).toLocaleString();
+}
+
+function formatWonShort(v) {
+  if (v === 0) return '±0';
+  const sign = v > 0 ? '+' : '-';
+  const abs = Math.abs(v);
+  if (abs >= 10000) return sign + (abs / 1000).toFixed(0) + 'k';
+  return sign + abs.toLocaleString();
 }
 
 function signClass(v) {
