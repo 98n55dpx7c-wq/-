@@ -34,7 +34,6 @@
   }
   .score-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
     gap: 6px;
   }
   .score-card {
@@ -107,7 +106,6 @@
   /* Par + score inputs */
   .input-row {
     display: grid;
-    grid-template-columns: 60px repeat(4, 1fr);
     gap: 6px;
     align-items: center;
     margin-bottom: 10px;
@@ -159,7 +157,6 @@
   }
   .result-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
     gap: 4px;
   }
   .result-cell {
@@ -267,62 +264,519 @@
   }
   .hole-num-badge.front { background: #1a4060; }
   .hole-num-badge.back  { background: #2a2060; }
+
+  /* ── Setup view ── */
+  #setupView {
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 24px 12px 40px;
+  }
+  #setupCard {
+    width: 100%;
+    max-width: 480px;
+    background: #1e2d40;
+    border-radius: 16px;
+    padding: 24px 18px;
+    border: 1px solid #2a3f58;
+  }
+  #setupCard h1 {
+    text-align: center;
+    font-size: 20px;
+    font-weight: 800;
+    color: #d0e8ff;
+    margin-bottom: 24px;
+    letter-spacing: 0.5px;
+  }
+  .setup-section {
+    margin-bottom: 22px;
+  }
+  .setup-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #7a9fc2;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  /* pill button groups */
+  .pill-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .pill-btn {
+    flex: 1;
+    min-width: 48px;
+    padding: 9px 6px;
+    background: #132030;
+    border: 1.5px solid #2a4060;
+    border-radius: 8px;
+    color: #7a9fc2;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .pill-btn.active {
+    background: #1a3d5c;
+    border-color: #4a8fc2;
+    color: #d0e8ff;
+  }
+  /* player name inputs */
+  .player-name-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .player-name-label {
+    font-size: 13px;
+    color: #7a9fc2;
+    min-width: 60px;
+  }
+  .player-name-input {
+    flex: 1;
+    background: #132030;
+    border: 1.5px solid #2a4060;
+    border-radius: 8px;
+    color: #e8edf3;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 9px 10px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .player-name-input:focus { border-color: #4a8fc2; }
+  /* unit custom input */
+  #customUnitWrap {
+    margin-top: 8px;
+    display: none;
+  }
+  #customUnitInput {
+    width: 100%;
+    background: #132030;
+    border: 1.5px solid #2a4060;
+    border-radius: 8px;
+    color: #e8edf3;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 9px 10px;
+    outline: none;
+    -moz-appearance: textfield;
+    appearance: textfield;
+    transition: border-color 0.2s;
+  }
+  #customUnitInput:focus { border-color: #4a8fc2; }
+  #customUnitInput::-webkit-outer-spin-button,
+  #customUnitInput::-webkit-inner-spin-button { -webkit-appearance: none; }
+  /* rule rows */
+  .rule-row {
+    display: flex;
+    align-items: center;
+    background: #132030;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    gap: 8px;
+  }
+  .rule-name {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: #d0e8ff;
+  }
+  .rule-mult-label {
+    font-size: 13px;
+    color: #7a9fc2;
+  }
+  .rule-mult-input {
+    width: 46px;
+    background: #1e3048;
+    border: 1.5px solid #2a4060;
+    border-radius: 6px;
+    color: #e8edf3;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    padding: 5px 4px;
+    outline: none;
+    -moz-appearance: textfield;
+    appearance: textfield;
+    transition: border-color 0.2s, opacity 0.2s;
+  }
+  .rule-mult-input::-webkit-outer-spin-button,
+  .rule-mult-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .rule-mult-input:focus { border-color: #4a8fc2; }
+  .rule-mult-input:disabled { opacity: 0.35; }
+  /* toggle switch */
+  .toggle-wrap { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+  .toggle-wrap input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #2a4060;
+    border-radius: 24px;
+    transition: background 0.2s;
+  }
+  .toggle-slider:before {
+    content: '';
+    position: absolute;
+    height: 18px; width: 18px;
+    left: 3px; bottom: 3px;
+    background: #7a9fc2;
+    border-radius: 50%;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .toggle-wrap input:checked + .toggle-slider { background: #1a4a2e; }
+  .toggle-wrap input:checked + .toggle-slider:before { transform: translateX(18px); background: #4ec97a; }
+  /* start button */
+  #startGameBtn {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    padding: 15px;
+    background: #1a4a2e;
+    color: #4ec97a;
+    border: 1.5px solid #4ec97a;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: background 0.15s;
+  }
+  #startGameBtn:active { background: #224a30; }
+  /* settings change button inside game view */
+  #settingsBtn {
+    display: block;
+    width: calc(100% - 24px);
+    max-width: 576px;
+    margin: 8px auto 0;
+    padding: 10px;
+    background: transparent;
+    color: #5a7a9a;
+    border: 1px solid #2a3f58;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+  }
+  #settingsBtn:active { background: #1a2d40; }
 </style>
 </head>
 <body>
 
-<div id="progressBar"><div id="progressFill"></div></div>
+<!-- ── 설정 화면 ── -->
+<div id="setupView">
+  <div id="setupCard">
+    <h1>⛳ 골프 내기 설정</h1>
 
-<div id="scoreboard">
-  <h2>💰 누적 잔액</h2>
-  <div class="score-grid" id="scoreGrid"></div>
+    <!-- 플레이어 수 -->
+    <div class="setup-section">
+      <div class="setup-label">참여 인원</div>
+      <div class="pill-group" id="playerCountBtns">
+        <button class="pill-btn" onclick="onPlayerCountChange(2)">2명</button>
+        <button class="pill-btn" onclick="onPlayerCountChange(3)">3명</button>
+        <button class="pill-btn active" onclick="onPlayerCountChange(4)">4명</button>
+        <button class="pill-btn" onclick="onPlayerCountChange(5)">5명</button>
+        <button class="pill-btn" onclick="onPlayerCountChange(6)">6명</button>
+      </div>
+    </div>
+
+    <!-- 이름 입력 -->
+    <div class="setup-section">
+      <div class="setup-label">플레이어 이름</div>
+      <div id="playerNameInputs"></div>
+    </div>
+
+    <!-- 타당 금액 -->
+    <div class="setup-section">
+      <div class="setup-label">타당 금액</div>
+      <div class="pill-group" id="unitBtns">
+        <button class="pill-btn active" onclick="onUnitSelect(1000)">₩1,000</button>
+        <button class="pill-btn" onclick="onUnitSelect(2000)">₩2,000</button>
+        <button class="pill-btn" onclick="onUnitSelect(5000)">₩5,000</button>
+        <button class="pill-btn" onclick="onUnitSelect('custom')">직접입력</button>
+      </div>
+      <div id="customUnitWrap">
+        <input type="number" id="customUnitInput" placeholder="금액을 입력하세요 (원)" min="100" step="100">
+      </div>
+    </div>
+
+    <!-- 게임 조건 -->
+    <div class="setup-section">
+      <div class="setup-label">게임 조건</div>
+      <div class="rule-row">
+        <span class="rule-name">🐦 버디 보너스</span>
+        <span class="rule-mult-label">배수</span>
+        <input class="rule-mult-input" id="birdieMultiplier" type="number" min="1" max="10" value="2">
+        <span class="rule-mult-label">배</span>
+        <label class="toggle-wrap">
+          <input type="checkbox" id="birdieOn" checked onchange="onRuleToggle('birdie')">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="rule-row">
+        <span class="rule-name">🧅 양파 패널티</span>
+        <span class="rule-mult-label">배수</span>
+        <input class="rule-mult-input" id="yangpaMultiplier" type="number" min="1" max="10" value="2">
+        <span class="rule-mult-label">배</span>
+        <label class="toggle-wrap">
+          <input type="checkbox" id="yangpaOn" checked onchange="onRuleToggle('yangpa')">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="rule-row">
+        <span class="rule-name">🦅 이글 보너스</span>
+        <span class="rule-mult-label">배수</span>
+        <input class="rule-mult-input" id="eagleMultiplier" type="number" min="1" max="10" value="3">
+        <span class="rule-mult-label">배</span>
+        <label class="toggle-wrap">
+          <input type="checkbox" id="eagleOn" onchange="onRuleToggle('eagle')">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <button id="startGameBtn" onclick="startGame()">게임 시작 →</button>
+  </div>
 </div>
 
-<main>
-  <div id="holesContainer"></div>
+<!-- ── 게임 화면 ── -->
+<div id="gameView" style="display:none">
+  <div id="progressBar"><div id="progressFill"></div></div>
 
-  <div class="section-title">⛳ 최종 정산</div>
-  <div id="settlement">
-    <h3>정산 내역</h3>
-    <div id="settlementBody"><p class="no-settle">점수를 입력하면 정산이 계산됩니다.</p></div>
+  <div id="scoreboard">
+    <h2>💰 누적 잔액</h2>
+    <div class="score-grid" id="scoreGrid"></div>
   </div>
 
-  <button id="resetBtn" onclick="resetAll()">🔄 새 게임 시작 (초기화)</button>
-</main>
+  <button id="settingsBtn" onclick="openSettings()">⚙ 설정 변경 / 새 게임</button>
+
+  <main>
+    <div id="holesContainer"></div>
+
+    <div class="section-title">⛳ 최종 정산</div>
+    <div id="settlement">
+      <h3>정산 내역</h3>
+      <div id="settlementBody"><p class="no-settle">점수를 입력하면 정산이 계산됩니다.</p></div>
+    </div>
+
+    <button id="resetBtn" onclick="resetScores()">🔄 점수만 초기화</button>
+  </main>
+</div>
 
 <script>
 // ─────────────────────────────────────────────
 // DATA
 // ─────────────────────────────────────────────
-const PLAYERS = ['정범', '승우', '재형', '만규'];
-const N = PLAYERS.length;
 const HOLES = 18;
-const UNIT = 1000; // 타당 천원
 
-// gameData[hole] = { par: number, scores: [p0,p1,p2,p3] }  (null if not entered)
-let gameData = Array.from({length: HOLES}, () => ({ par: 4, scores: [null, null, null, null] }));
+let CONFIG = {
+  players: ['플레이어1', '플레이어2', '플레이어3', '플레이어4'],
+  unit: 1000,
+  rules: {
+    birdie: { enabled: true,  mult: 2 },
+    yangpa: { enabled: true,  mult: 2 },
+    eagle:  { enabled: false, mult: 3 },
+  }
+};
+
+let gameData = [];
+
+function freshGameData() {
+  return Array.from({length: HOLES}, () => ({
+    par: 4,
+    scores: Array(CONFIG.players.length).fill(null)
+  }));
+}
 
 // ─────────────────────────────────────────────
 // INIT
 // ─────────────────────────────────────────────
 function init() {
-  loadFromStorage();
+  const cfg = loadConfig();
+  if (cfg) {
+    CONFIG = cfg;
+    const data = loadGameData();
+    if (data) {
+      gameData = data;
+      showGameView();
+      return;
+    }
+  }
+  // No valid saved state → show setup
+  showSetupView();
+}
+
+function showSetupView() {
+  document.getElementById('setupView').style.display  = 'flex';
+  document.getElementById('gameView').style.display   = 'none';
+  renderSetupForm();
+}
+
+function showGameView() {
+  document.getElementById('setupView').style.display  = 'none';
+  document.getElementById('gameView').style.display   = 'block';
   buildScoreboard();
   buildHoles();
   updateAll();
+  // Open first hole
+  const tog = document.getElementById('toggle-0');
+  if (tog) tog.classList.add('open');
 }
 
+// ─────────────────────────────────────────────
+// SETUP SCREEN
+// ─────────────────────────────────────────────
+let setupUnit = 1000; // tracks selected unit in setup form
+
+function renderSetupForm() {
+  // Pre-fill from CONFIG if available
+  const n = CONFIG.players.length;
+  // Highlight correct player count button
+  document.querySelectorAll('#playerCountBtns .pill-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent === n + '명');
+  });
+  renderPlayerNameInputs(n);
+
+  // Unit
+  setupUnit = CONFIG.unit;
+  const presets = [1000, 2000, 5000];
+  const isPreset = presets.includes(setupUnit);
+  document.querySelectorAll('#unitBtns .pill-btn').forEach(btn => {
+    const v = btn.dataset.unit;
+    btn.classList.toggle('active',
+      (v === 'custom' && !isPreset) ||
+      (v !== 'custom' && parseInt(v) === setupUnit)
+    );
+  });
+  document.getElementById('customUnitWrap').style.display = isPreset ? 'none' : 'block';
+  if (!isPreset) document.getElementById('customUnitInput').value = setupUnit;
+
+  // Rules
+  ['birdie', 'yangpa', 'eagle'].forEach(r => {
+    document.getElementById(r + 'On').checked = CONFIG.rules[r].enabled;
+    document.getElementById(r + 'Multiplier').value = CONFIG.rules[r].mult;
+    document.getElementById(r + 'Multiplier').disabled = !CONFIG.rules[r].enabled;
+  });
+}
+
+function renderPlayerNameInputs(count) {
+  const existing = [...document.querySelectorAll('.player-name-input')].map(el => el.value);
+  const container = document.getElementById('playerNameInputs');
+  container.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const row = document.createElement('div');
+    row.className = 'player-name-row';
+    const placeholder = '플레이어' + (i + 1);
+    const val = (existing[i] !== undefined ? existing[i] : '') || (CONFIG.players[i] !== placeholder ? (CONFIG.players[i] || '') : '');
+    row.innerHTML = `
+      <span class="player-name-label">플레이어 ${i + 1}</span>
+      <input class="player-name-input" type="text" maxlength="8"
+        placeholder="${placeholder}"
+        value="${escapeHtml(val)}"
+        data-idx="${i}">
+    `;
+    container.appendChild(row);
+  }
+}
+
+function onPlayerCountChange(n) {
+  document.querySelectorAll('#playerCountBtns .pill-btn').forEach((btn, idx) => {
+    btn.classList.toggle('active', idx + 2 === n);
+  });
+  renderPlayerNameInputs(n);
+}
+
+function onUnitSelect(val) {
+  setupUnit = val === 'custom' ? 'custom' : val;
+  document.querySelectorAll('#unitBtns .pill-btn').forEach(btn => {
+    const bv = btn.dataset.unit;
+    btn.classList.toggle('active',
+      (bv === 'custom' && val === 'custom') ||
+      (bv !== 'custom' && parseInt(bv) === val)
+    );
+  });
+  const wrap = document.getElementById('customUnitWrap');
+  wrap.style.display = val === 'custom' ? 'block' : 'none';
+  if (val !== 'custom') document.getElementById('customUnitInput').value = '';
+}
+
+function onRuleToggle(rule) {
+  const enabled = document.getElementById(rule + 'On').checked;
+  document.getElementById(rule + 'Multiplier').disabled = !enabled;
+}
+
+function startGame() {
+  // Read player count
+  const activePill = document.querySelector('#playerCountBtns .pill-btn.active');
+  const count = activePill ? parseInt(activePill.textContent) : 4;
+
+  // Read names
+  const nameEls = document.querySelectorAll('.player-name-input');
+  const names = [...nameEls].map((el, i) => el.value.trim() || ('플레이어' + (i + 1)));
+
+  // Validate unique
+  if (new Set(names).size !== names.length) {
+    alert('중복된 이름이 있습니다. 각자 다른 이름을 사용해주세요.');
+    return;
+  }
+
+  // Read unit
+  let unit;
+  if (setupUnit === 'custom') {
+    unit = parseInt(document.getElementById('customUnitInput').value);
+    if (!unit || unit < 100) { alert('올바른 금액을 입력하세요 (100원 이상).'); return; }
+  } else {
+    unit = setupUnit;
+  }
+
+  // Read rules
+  const rules = {};
+  ['birdie', 'yangpa', 'eagle'].forEach(r => {
+    const mult = parseInt(document.getElementById(r + 'Multiplier').value) || 2;
+    rules[r] = {
+      enabled: document.getElementById(r + 'On').checked,
+      mult: Math.max(1, mult),
+    };
+  });
+
+  CONFIG = { players: names, unit, rules };
+  gameData = freshGameData();
+  saveConfig();
+  saveGameData();
+  showGameView();
+}
+
+function openSettings() {
+  if (!confirm('설정을 변경하면 현재 게임 데이터가 초기화됩니다.\n계속하시겠습니까?')) return;
+  localStorage.removeItem('golfBettingData');
+  showSetupView();
+}
+
+// ─────────────────────────────────────────────
+// BUILD UI (game view)
+// ─────────────────────────────────────────────
 function buildScoreboard() {
+  const N = CONFIG.players.length;
   const grid = document.getElementById('scoreGrid');
-  grid.innerHTML = PLAYERS.map((name, i) => `
+  grid.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
+  grid.innerHTML = CONFIG.players.map((name, i) => `
     <div class="score-card" id="sc-${i}">
-      <div class="name">${name}</div>
+      <div class="name">${escapeHtml(name)}</div>
       <div class="amount zero" id="sc-amt-${i}">₩0</div>
     </div>
   `).join('');
 }
 
 function buildHoles() {
+  const N = CONFIG.players.length;
   const container = document.getElementById('holesContainer');
   container.innerHTML = '';
   for (let h = 0; h < HOLES; h++) {
@@ -344,15 +798,15 @@ function buildHoles() {
         <span class="hole-toggle" id="toggle-${h}">▼</span>
       </div>
       <div class="hole-body" id="body-${h}" style="display:${h===0?'block':'none'}">
-        <div class="input-row">
+        <div class="input-row" style="grid-template-columns: 60px repeat(${N}, 1fr)">
           <div class="input-col">
             <div class="input-label">파</div>
             <input class="score-input" id="par-${h}" type="number" min="3" max="5"
               value="${d.par}" onchange="setPar(${h},this.value)" style="font-size:16px;">
           </div>
-          ${PLAYERS.map((name, i) => `
+          ${CONFIG.players.map((name, i) => `
             <div class="input-col">
-              <div class="input-label">${name}</div>
+              <div class="input-label">${escapeHtml(name)}</div>
               <input class="score-input" id="score-${h}-${i}" type="number" min="1" max="12"
                 value="${d.scores[i] !== null ? d.scores[i] : ''}"
                 placeholder="-"
@@ -382,7 +836,7 @@ function setPar(h, val) {
   const v = parseInt(val);
   if (isNaN(v) || v < 3 || v > 5) return;
   gameData[h].par = v;
-  saveToStorage();
+  saveGameData();
   updateHole(h);
   updateAll();
 }
@@ -390,7 +844,7 @@ function setPar(h, val) {
 function setScore(h, playerIdx, val) {
   const v = val === '' ? null : parseInt(val);
   gameData[h].scores[playerIdx] = (v !== null && isNaN(v)) ? null : v;
-  saveToStorage();
+  saveGameData();
   updateHole(h);
   updateAll();
 }
@@ -398,22 +852,20 @@ function setScore(h, playerIdx, val) {
 // ─────────────────────────────────────────────
 // CALCULATION
 // ─────────────────────────────────────────────
-
-// Returns delta array [p0, p1, p2, p3] for a single hole
 function calcHoleDelta(holeIdx) {
   const { par, scores } = gameData[holeIdx];
-  const delta = [0, 0, 0, 0];
+  const N = CONFIG.players.length;
+  const delta = Array(N).fill(0);
 
-  // Need all 4 scores to calculate
   if (scores.some(s => s === null)) return delta;
 
   const isBirdie = scores.map(s => s <= par - 1);
   const isYangpa = scores.map(s => s >= par + 2);
+  const isEagle  = scores.map(s => s <= par - 2);
 
-  // All pairs
   for (let a = 0; a < N; a++) {
     for (let b = a + 1; b < N; b++) {
-      const diff = scores[a] - scores[b]; // positive → b is better
+      const diff = scores[a] - scores[b];
       if (diff === 0) continue;
 
       const winner = diff > 0 ? b : a;
@@ -421,12 +873,17 @@ function calcHoleDelta(holeIdx) {
       const strokes = Math.abs(diff);
 
       let mult = 1;
-      // Birdie bonus: winner birdied, loser didn't
-      if (isBirdie[winner] && !isBirdie[loser]) mult *= 2;
-      // Yangpa penalty: loser got yangpa, winner didn't
-      if (isYangpa[loser] && !isYangpa[winner]) mult *= 2;
+      // Eagle beats birdie check (eagle ⊂ birdie score-wise)
+      if (CONFIG.rules.eagle.enabled && isEagle[winner] && !isEagle[loser]) {
+        mult *= CONFIG.rules.eagle.mult;
+      } else if (CONFIG.rules.birdie.enabled && isBirdie[winner] && !isBirdie[loser]) {
+        mult *= CONFIG.rules.birdie.mult;
+      }
+      if (CONFIG.rules.yangpa.enabled && isYangpa[loser] && !isYangpa[winner]) {
+        mult *= CONFIG.rules.yangpa.mult;
+      }
 
-      const amount = strokes * UNIT * mult;
+      const amount = strokes * CONFIG.unit * mult;
       delta[winner] += amount;
       delta[loser]  -= amount;
     }
@@ -435,7 +892,8 @@ function calcHoleDelta(holeIdx) {
 }
 
 function calcTotals() {
-  const totals = [0, 0, 0, 0];
+  const N = CONFIG.players.length;
+  const totals = Array(N).fill(0);
   for (let h = 0; h < HOLES; h++) {
     const d = calcHoleDelta(h);
     for (let i = 0; i < N; i++) totals[i] += d[i];
@@ -447,58 +905,55 @@ function calcTotals() {
 // RENDER
 // ─────────────────────────────────────────────
 function updateAll() {
+  const N = CONFIG.players.length;
   const totals = calcTotals();
 
-  // Scoreboard
   for (let i = 0; i < N; i++) {
     const el = document.getElementById(`sc-amt-${i}`);
+    if (!el) continue;
     el.textContent = formatWon(totals[i]);
     el.className = 'amount ' + signClass(totals[i]);
   }
 
-  // Progress bar
   const filled = gameData.filter(h => h.scores.every(s => s !== null)).length;
   document.getElementById('progressFill').style.width = (filled / HOLES * 100) + '%';
 
-  // Settlement
   renderSettlement(totals);
 }
 
 function updateHole(h) {
+  const N = CONFIG.players.length;
   const { par, scores } = gameData[h];
   const delta = calcHoleDelta(h);
   const isBirdie = scores.map(s => s !== null && s <= par - 1);
   const isYangpa = scores.map(s => s !== null && s >= par + 2);
   const isEagle  = scores.map(s => s !== null && s <= par - 2);
 
-  // Update score input colors
   for (let i = 0; i < N; i++) {
     const inp = document.getElementById(`score-${h}-${i}`);
+    if (!inp) continue;
     if (scores[i] === null) { inp.className = 'score-input'; continue; }
-    if (isEagle[i])       inp.className = 'score-input eagle';
-    else if (isBirdie[i]) inp.className = 'score-input birdie';
-    else if (isYangpa[i]) inp.className = 'score-input yangpa';
+    if (isEagle[i])         inp.className = 'score-input eagle';
+    else if (isBirdie[i])   inp.className = 'score-input birdie';
+    else if (isYangpa[i])   inp.className = 'score-input yangpa';
     else if (scores[i] === par) inp.className = 'score-input par';
     else inp.className = 'score-input';
   }
 
-  // Badges
   const badgesEl = document.getElementById(`badges-${h}`);
   const anyScore = scores.some(s => s !== null);
   if (anyScore) {
     let html = '';
-    if (isEagle.some(Boolean))  html += `<span class="badge badge-eagle">이글🦅</span>`;
-    else if (isBirdie.some(Boolean)) html += `<span class="badge badge-birdie">버디🐦</span>`;
-    if (isYangpa.some(Boolean)) html += `<span class="badge badge-yangpa">양파🧅</span>`;
+    if (isEagle.some(Boolean))        html += `<span class="badge badge-eagle">이글🦅</span>`;
+    else if (isBirdie.some(Boolean))  html += `<span class="badge badge-birdie">버디🐦</span>`;
+    if (isYangpa.some(Boolean))       html += `<span class="badge badge-yangpa">양파🧅</span>`;
     badgesEl.innerHTML = html;
   } else {
     badgesEl.innerHTML = '';
   }
 
-  // Hole result
   const resultEl = document.getElementById(`hole-result-${h}`);
-  const allEntered = scores.every(s => s !== null);
-  if (!allEntered) {
+  if (!scores.every(s => s !== null)) {
     resultEl.innerHTML = '';
     return;
   }
@@ -506,10 +961,10 @@ function updateHole(h) {
   resultEl.innerHTML = `
     <div class="hole-result">
       <div class="result-title">홀 정산</div>
-      <div class="result-grid">
-        ${PLAYERS.map((name, i) => `
+      <div class="result-grid" style="grid-template-columns: repeat(${N}, 1fr)">
+        ${CONFIG.players.map((name, i) => `
           <div class="result-cell ${delta[i] > 0 ? 'plus' : delta[i] < 0 ? 'minus' : ''}">
-            <div class="r-name">${name}</div>
+            <div class="r-name">${escapeHtml(name)}</div>
             <div class="r-amt ${signClass(delta[i])}">${formatWon(delta[i])}</div>
           </div>
         `).join('')}
@@ -519,8 +974,8 @@ function updateHole(h) {
 }
 
 function renderSettlement(totals) {
-  // Debt simplification: find min transactions
-  const bal = totals.slice(); // copy
+  const N = CONFIG.players.length;
+  const bal = totals.slice();
   const transactions = [];
 
   for (let round = 0; round < 20; round++) {
@@ -545,9 +1000,9 @@ function renderSettlement(totals) {
 
   body.innerHTML = transactions.map(t => `
     <div class="settle-row">
-      <span class="settle-from">${PLAYERS[t.from]}</span>
+      <span class="settle-from">${escapeHtml(CONFIG.players[t.from])}</span>
       <span class="settle-arrow">→</span>
-      <span class="settle-to">${PLAYERS[t.to]}</span>
+      <span class="settle-to">${escapeHtml(CONFIG.players[t.to])}</span>
       <span class="settle-amt">${t.amount.toLocaleString()}원</span>
     </div>
   `).join('');
@@ -558,54 +1013,73 @@ function renderSettlement(totals) {
 // ─────────────────────────────────────────────
 function formatWon(v) {
   if (v === 0) return '₩0';
-  const sign = v > 0 ? '+' : '-';
-  return sign + '₩' + Math.abs(v).toLocaleString();
+  return (v > 0 ? '+' : '-') + '₩' + Math.abs(v).toLocaleString();
 }
 
 function signClass(v) {
   return v > 0 ? 'plus' : v < 0 ? 'minus' : 'zero';
 }
 
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 // ─────────────────────────────────────────────
 // STORAGE
 // ─────────────────────────────────────────────
-function saveToStorage() {
-  try { localStorage.setItem('golfBetting', JSON.stringify(gameData)); } catch(e) {}
+function saveConfig() {
+  try { localStorage.setItem('golfBettingConfig', JSON.stringify(CONFIG)); } catch(e) {}
 }
 
-function loadFromStorage() {
+function loadConfig() {
   try {
-    const saved = localStorage.getItem('golfBetting');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length === HOLES) {
-        gameData = parsed;
-      }
-    }
-  } catch(e) {}
+    const s = localStorage.getItem('golfBettingConfig');
+    if (!s) return null;
+    const cfg = JSON.parse(s);
+    if (!Array.isArray(cfg.players) || cfg.players.length < 2 || cfg.players.length > 6) return null;
+    if (!cfg.unit || cfg.unit <= 0) return null;
+    if (!cfg.rules) return null;
+    return cfg;
+  } catch(e) { return null; }
 }
 
-function resetAll() {
-  if (!confirm('정말 초기화하시겠습니까? 모든 데이터가 삭제됩니다.')) return;
-  gameData = Array.from({length: HOLES}, () => ({ par: 4, scores: [null, null, null, null] }));
-  saveToStorage();
+function saveGameData() {
+  try { localStorage.setItem('golfBettingData', JSON.stringify(gameData)); } catch(e) {}
+}
+
+function loadGameData() {
+  try {
+    const s = localStorage.getItem('golfBettingData');
+    if (!s) return null;
+    const data = JSON.parse(s);
+    if (!Array.isArray(data) || data.length !== HOLES) return null;
+    if (data.some(h => h.scores.length !== CONFIG.players.length)) return null;
+    return data;
+  } catch(e) { return null; }
+}
+
+function resetScores() {
+  if (!confirm('점수를 초기화하시겠습니까?\n설정(인원/금액/조건)은 유지됩니다.')) return;
+  gameData = freshGameData();
+  saveGameData();
   buildHoles();
   updateAll();
-  // Open first hole
-  document.getElementById(`body-0`).style.display = 'block';
-  document.getElementById(`toggle-0`).classList.add('open');
+  const tog = document.getElementById('toggle-0');
+  if (tog) tog.classList.add('open');
 }
+
+// ─────────────────────────────────────────────
+// SETUP UNIT BUTTON DATA ATTRIBUTES
+// ─────────────────────────────────────────────
+document.querySelectorAll('#unitBtns .pill-btn').forEach((btn, i) => {
+  const vals = [1000, 2000, 5000, 'custom'];
+  btn.dataset.unit = vals[i];
+});
 
 // ─────────────────────────────────────────────
 // START
 // ─────────────────────────────────────────────
 init();
-
-// Open first hole toggle icon
-document.addEventListener('DOMContentLoaded', () => {
-  const tog = document.getElementById('toggle-0');
-  if (tog) tog.classList.add('open');
-});
 </script>
 </body>
 </html>
