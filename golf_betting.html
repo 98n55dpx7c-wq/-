@@ -643,13 +643,22 @@
       <!-- 버디 -->
       <div class="rule-row">
         <span class="rule-name">🐦 버디 보너스</span>
-        <span class="rule-mult-label">배수</span>
-        <input class="rule-mult-input" id="birdieMultiplier" type="number" min="1" max="20" value="2">
-        <span class="rule-mult-label">배</span>
         <label class="toggle-wrap">
           <input type="checkbox" id="birdieOn" checked onchange="onRuleToggle('birdie')">
           <span class="toggle-slider"></span>
         </label>
+      </div>
+      <div id="birdieModeWrap" class="threshold-row">
+        <span class="threshold-label">보너스 방식</span>
+        <div class="pill-group" id="birdieModeButtons">
+          <button class="pill-btn active" onclick="onBirdieMode('multiplier')">배수 방식<br><small>타수×배수 지급</small></button>
+          <button class="pill-btn" onclick="onBirdieMode('flat')">+1타 방식<br><small>버디 시 1타 추가</small></button>
+        </div>
+        <div id="birdieMultRow" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+          <span class="rule-mult-label">배수</span>
+          <input class="rule-mult-input" id="birdieMultiplier" type="number" min="1" max="20" value="2">
+          <span class="rule-mult-label">배</span>
+        </div>
       </div>
 
       <!-- 이글 -->
@@ -851,14 +860,22 @@ function renderSetupForm() {
   document.getElementById('customUnitWrap').style.display = isPreset ? 'none' : 'block';
   if (!isPreset) document.getElementById('customUnitInput').value = setupUnit;
 
-  // Rules: birdie, eagle, albatross, holeinone, yangpa
-  ['birdie', 'eagle', 'albatross', 'holeinone', 'yangpa'].forEach(r => {
+  // Rules: eagle, albatross, holeinone, yangpa
+  ['eagle', 'albatross', 'holeinone', 'yangpa'].forEach(r => {
     const rule = CONFIG.rules[r];
     if (!rule) return;
     document.getElementById(r + 'On').checked = rule.enabled;
     document.getElementById(r + 'Multiplier').value = rule.mult;
     document.getElementById(r + 'Multiplier').disabled = !rule.enabled;
   });
+  // Birdie (mode 포함)
+  const birdieRule = CONFIG.rules.birdie;
+  document.getElementById('birdieOn').checked = birdieRule.enabled;
+  setupBirdieMode = birdieRule.mode || 'multiplier';
+  onBirdieMode(setupBirdieMode);
+  document.getElementById('birdieMultiplier').value = birdieRule.mult;
+  document.getElementById('birdieModeWrap').style.opacity = birdieRule.enabled ? '1' : '0.4';
+  document.getElementById('birdieModeWrap').style.pointerEvents = birdieRule.enabled ? '' : 'none';
 
   // Yangpa threshold
   const threshold = CONFIG.rules.yangpa.threshold || 'double_par';
@@ -918,7 +935,12 @@ function onUnitSelect(val) {
 
 function onRuleToggle(rule) {
   const enabled = document.getElementById(rule + 'On').checked;
-  document.getElementById(rule + 'Multiplier').disabled = !enabled;
+  if (rule === 'birdie') {
+    document.getElementById('birdieModeWrap').style.opacity = enabled ? '1' : '0.4';
+    document.getElementById('birdieModeWrap').style.pointerEvents = enabled ? '' : 'none';
+  } else {
+    document.getElementById(rule + 'Multiplier').disabled = !enabled;
+  }
   if (rule === 'yangpa') {
     document.getElementById('yangpaThresholdWrap').style.opacity = enabled ? '1' : '0.4';
     document.getElementById('yangpaThresholdWrap').style.pointerEvents = enabled ? '' : 'none';
@@ -929,6 +951,16 @@ function onBaebanToggle() {
   const enabled = document.getElementById('baebanOn').checked;
   document.getElementById('baebanDetailWrap').style.opacity = enabled ? '1' : '0.4';
   document.getElementById('baebanDetailWrap').style.pointerEvents = enabled ? '' : 'none';
+}
+
+let setupBirdieMode = 'multiplier';
+
+function onBirdieMode(val) {
+  setupBirdieMode = val;
+  document.querySelectorAll('#birdieModeButtons .pill-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', i === (val === 'multiplier' ? 0 : 1));
+  });
+  document.getElementById('birdieMultRow').style.display = val === 'multiplier' ? 'flex' : 'none';
 }
 
 let setupYangpaThreshold = 'double_par';
@@ -966,10 +998,17 @@ function startGame() {
   }
 
   const rules = {};
-  ['birdie', 'eagle', 'albatross', 'holeinone'].forEach(r => {
+  ['eagle', 'albatross', 'holeinone'].forEach(r => {
     const mult = parseInt(document.getElementById(r + 'Multiplier').value) || 2;
     rules[r] = { enabled: document.getElementById(r + 'On').checked, mult: Math.max(1, mult) };
   });
+  // 버디 (mode 포함)
+  const birdieMult = parseInt(document.getElementById('birdieMultiplier').value) || 2;
+  rules.birdie = {
+    enabled: document.getElementById('birdieOn').checked,
+    mult: Math.max(1, birdieMult),
+    mode: setupBirdieMode,
+  };
 
   // Yangpa with threshold
   const yangpaMult = parseInt(document.getElementById('yangpaMultiplier').value) || 2;
@@ -1150,6 +1189,8 @@ function calcHoleDelta(holeIdx) {
       const strokes = Math.abs(diff);
 
       let mult;
+      const birdieMode = CONFIG.rules.birdie.mode || 'multiplier';
+
       if (isBaeban) {
         // ── 배판 모드: 배판 기본 배수에 버디/양파 조건을 덧셈으로 추가, 최대 maxMult ──
         let add = 0;
@@ -1160,7 +1201,7 @@ function calcHoleDelta(holeIdx) {
           add += CONFIG.rules.albatross.mult - 1;
         else if (CONFIG.rules.eagle.enabled && isEagle[winner] && !isEagle[loser])
           add += CONFIG.rules.eagle.mult - 1;
-        else if (CONFIG.rules.birdie.enabled && isBirdie[winner] && !isBirdie[loser])
+        else if (CONFIG.rules.birdie.enabled && birdieMode === 'multiplier' && isBirdie[winner] && !isBirdie[loser])
           add += CONFIG.rules.birdie.mult - 1;
         // Loser penalty 덧셈
         if (CONFIG.rules.yangpa.enabled && isYangpa[loser] && !isYangpa[winner])
@@ -1169,14 +1210,14 @@ function calcHoleDelta(holeIdx) {
       } else {
         // ── 일반 모드: 기존 곱셈 방식 ──
         mult = 1;
-        // Winner bonus: 홀인원 > 알바트로스 > 이글 > 버디
+        // Winner bonus: 홀인원 > 알바트로스 > 이글 > 버디(배수 방식만)
         if (CONFIG.rules.holeinone.enabled && isHoleinone[winner] && !isHoleinone[loser]) {
           mult *= CONFIG.rules.holeinone.mult;
         } else if (CONFIG.rules.albatross.enabled && isAlbatross[winner] && !isAlbatross[loser]) {
           mult *= CONFIG.rules.albatross.mult;
         } else if (CONFIG.rules.eagle.enabled && isEagle[winner] && !isEagle[loser]) {
           mult *= CONFIG.rules.eagle.mult;
-        } else if (CONFIG.rules.birdie.enabled && isBirdie[winner] && !isBirdie[loser]) {
+        } else if (CONFIG.rules.birdie.enabled && birdieMode === 'multiplier' && isBirdie[winner] && !isBirdie[loser]) {
           mult *= CONFIG.rules.birdie.mult;
         }
         // Loser penalty
@@ -1190,6 +1231,19 @@ function calcHoleDelta(holeIdx) {
       delta[loser]  -= amount;
     }
   }
+
+  // ── +1타 방식 버디 보너스: 버디 플레이어가 비버디 플레이어 각각에게 1타분 추가 수령 ──
+  if (CONFIG.rules.birdie.enabled && (CONFIG.rules.birdie.mode || 'multiplier') === 'flat') {
+    for (let i = 0; i < N; i++) {
+      if (!isBirdie[i]) continue;
+      for (let j = 0; j < N; j++) {
+        if (i === j || isBirdie[j]) continue;
+        delta[i] += CONFIG.unit;
+        delta[j] -= CONFIG.unit;
+      }
+    }
+  }
+
   return delta;
 }
 
@@ -1443,6 +1497,7 @@ function loadConfig() {
       baeban:    { enabled: true,  maxMult: 3 },
     };
     Object.entries(defaults).forEach(([k, v]) => { if (!cfg.rules[k]) cfg.rules[k] = v; });
+    if (!cfg.rules.birdie.mode) cfg.rules.birdie.mode = 'multiplier';
     if (!cfg.rules.yangpa.threshold) cfg.rules.yangpa.threshold = 'double_par';
     if (!cfg.rules.yangpa.customOffset) cfg.rules.yangpa.customOffset = 3;
     return cfg;
