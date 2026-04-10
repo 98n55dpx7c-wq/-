@@ -506,6 +506,214 @@
   }
   #settingsBtn:active { background: #1a2d40; }
 
+  /* ── Scan button ── */
+  #scanBtn {
+    display: block;
+    width: calc(100% - 24px);
+    max-width: 576px;
+    margin: 6px auto 0;
+    padding: 10px;
+    background: #0e2030;
+    color: #4a9fc8;
+    border: 1px solid #1e4a6e;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    letter-spacing: 0.3px;
+  }
+  #scanBtn:active { background: #142840; }
+
+  /* ── Scan modal ── */
+  .scan-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 200;
+  }
+  .scan-card {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 201;
+    background: #1e2d40;
+    border: 1px solid #2a4060;
+    border-radius: 16px;
+    padding: 20px 18px;
+    width: calc(100% - 32px);
+    max-width: 460px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .scan-card h3 {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 800;
+    color: #d0e8ff;
+    margin-bottom: 18px;
+  }
+  .scan-section { margin-bottom: 14px; }
+  .scan-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #7a9fc2;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+    display: block;
+  }
+  .scan-key-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .scan-key-input {
+    flex: 1;
+    background: #132030;
+    border: 1.5px solid #2a4060;
+    border-radius: 8px;
+    color: #e8edf3;
+    font-size: 13px;
+    padding: 9px 10px;
+    outline: none;
+    font-family: monospace;
+    transition: border-color 0.2s;
+  }
+  .scan-key-input:focus { border-color: #4a8fc2; }
+  .scan-save-btn {
+    padding: 9px 12px;
+    background: #1a3d5c;
+    border: 1px solid #2a5078;
+    border-radius: 8px;
+    color: #7ab8e0;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .scan-save-btn:active { background: #224a6a; }
+  .scan-upload-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px;
+    background: #132030;
+    border: 2px dashed #2a4060;
+    border-radius: 10px;
+    color: #7a9fc2;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .scan-upload-label:hover { border-color: #4a8fc2; background: #1a2d42; }
+  #scanFileInput { display: none; }
+  #scanPreview {
+    margin-top: 10px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #0e1e2e;
+    text-align: center;
+    min-height: 0;
+  }
+  #scanPreview img {
+    max-width: 100%;
+    max-height: 200px;
+    object-fit: contain;
+    border-radius: 8px;
+  }
+  .scan-analyze-btn {
+    display: block;
+    width: 100%;
+    padding: 13px;
+    margin-top: 4px;
+    background: #1a4a2e;
+    color: #4ec97a;
+    border: 1.5px solid #4ec97a;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .scan-analyze-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+  .scan-analyze-btn:not(:disabled):active { background: #224a30; }
+  .scan-status {
+    text-align: center;
+    font-size: 13px;
+    color: #7a9fc2;
+    margin-top: 10px;
+    min-height: 20px;
+  }
+  .scan-status.error { color: #ff8080; }
+  .scan-result-box {
+    margin-top: 12px;
+    background: #132030;
+    border-radius: 10px;
+    padding: 10px;
+    overflow-x: auto;
+  }
+  .scan-result-title {
+    font-size: 11px;
+    color: #5a7a9a;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .scan-result-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .scan-result-table th {
+    color: #7a9fc2;
+    padding: 4px 6px;
+    text-align: center;
+    font-weight: 700;
+    border-bottom: 1px solid #2a3f58;
+  }
+  .scan-result-table td {
+    color: #d0e8ff;
+    padding: 4px 6px;
+    text-align: center;
+  }
+  .scan-result-table tr:nth-child(even) td { background: #0e1e2e; }
+  .scan-apply-btn {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    padding: 12px;
+    background: #1a3d5c;
+    color: #7ab8e0;
+    border: 1.5px solid #4a8fc2;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .scan-apply-btn:active { background: #224a6a; }
+  .scan-close-btn {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    padding: 10px;
+    background: transparent;
+    color: #5a7a9a;
+    border: 1px solid #2a3f58;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
   /* ── Per-hole mini amounts in header ── */
   .hole-header-right {
     display: flex;
@@ -762,6 +970,52 @@
   </div>
 
   <button id="settingsBtn" onclick="openSettings()">⚙ 설정 변경 / 새 게임</button>
+  <button id="scanBtn" onclick="openScanModal()">📷 스코어표 스캔하여 자동 입력</button>
+
+  <!-- ── 스캔 모달 ── -->
+  <div id="scanModal" style="display:none">
+    <div class="scan-overlay" onclick="closeScanModal()"></div>
+    <div class="scan-card">
+      <h3>📷 스코어표 자동 인식</h3>
+
+      <div class="scan-section">
+        <span class="scan-label">Anthropic API Key</span>
+        <div class="scan-key-row">
+          <input class="scan-key-input" type="password" id="scanApiKey" placeholder="sk-ant-api03-...">
+          <button class="scan-save-btn" onclick="saveApiKey()">저장</button>
+        </div>
+        <div style="font-size:11px; color:#5a7a9a; margin-top:6px;">
+          키는 이 기기에만 저장되며 외부로 전송되지 않습니다.
+        </div>
+      </div>
+
+      <div class="scan-section">
+        <span class="scan-label">스코어카드 이미지</span>
+        <input type="file" id="scanFileInput" accept="image/*" capture="environment" onchange="onScanImageSelect(this)">
+        <label for="scanFileInput" class="scan-upload-label">
+          📸 사진 촬영 또는 이미지 선택
+        </label>
+        <div id="scanPreview"></div>
+      </div>
+
+      <button class="scan-analyze-btn" id="analyzeBtn" onclick="analyzeScorecard()" disabled>
+        🔍 점수 자동 인식
+      </button>
+      <div class="scan-status" id="scanStatus"></div>
+
+      <div id="scanResultWrap" style="display:none">
+        <div class="scan-result-box">
+          <div class="scan-result-title">인식 결과 확인</div>
+          <div style="overflow-x:auto">
+            <table class="scan-result-table" id="scanResultTable"></table>
+          </div>
+        </div>
+        <button class="scan-apply-btn" onclick="applyScanResult()">✅ 점수 적용</button>
+      </div>
+
+      <button class="scan-close-btn" onclick="closeScanModal()">✕ 닫기</button>
+    </div>
+  </div>
 
   <main>
     <div id="holesContainer"></div>
@@ -1531,6 +1785,166 @@ function resetScores() {
   updateAll();
   const tog = document.getElementById('toggle-0');
   if (tog) tog.classList.add('open');
+}
+
+// ─────────────────────────────────────────────
+// SCAN (스코어카드 자동 인식)
+// ─────────────────────────────────────────────
+let scanImageBase64 = null;
+let scanImageType   = null;
+let scanParsedHoles = null;
+
+function openScanModal() {
+  document.getElementById('scanModal').style.display = 'block';
+  // 저장된 API 키 복원
+  const saved = localStorage.getItem('anthropicApiKey');
+  if (saved) document.getElementById('scanApiKey').value = saved;
+}
+
+function closeScanModal() {
+  document.getElementById('scanModal').style.display = 'none';
+}
+
+function saveApiKey() {
+  const key = document.getElementById('scanApiKey').value.trim();
+  if (!key) return;
+  localStorage.setItem('anthropicApiKey', key);
+  setScanStatus('API 키가 저장되었습니다.', false);
+}
+
+function onScanImageSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    const [header, b64] = dataUrl.split(',');
+    scanImageBase64 = b64;
+    scanImageType   = file.type || 'image/jpeg';
+    // 미리보기
+    document.getElementById('scanPreview').innerHTML =
+      `<img src="${dataUrl}" alt="미리보기">`;
+    document.getElementById('analyzeBtn').disabled = false;
+    document.getElementById('scanResultWrap').style.display = 'none';
+    setScanStatus('');
+  };
+  reader.readAsDataURL(file);
+}
+
+function setScanStatus(msg, isError = false) {
+  const el = document.getElementById('scanStatus');
+  el.textContent = msg;
+  el.className = 'scan-status' + (isError ? ' error' : '');
+}
+
+async function analyzeScorecard() {
+  const apiKey = document.getElementById('scanApiKey').value.trim();
+  if (!apiKey) { setScanStatus('API 키를 입력해주세요.', true); return; }
+  if (!scanImageBase64) { setScanStatus('이미지를 선택해주세요.', true); return; }
+
+  const btn = document.getElementById('analyzeBtn');
+  btn.disabled = true;
+  setScanStatus('⏳ 인식 중... (수 초 소요)');
+  document.getElementById('scanResultWrap').style.display = 'none';
+
+  const playerList = CONFIG.players.map((n, i) => `${i + 1}. ${n}`).join('\n');
+  const prompt = `이 골프 스코어카드 이미지를 분석해주세요.
+
+현재 플레이어 목록 (순서 중요):
+${playerList}
+
+각 홀의 파(par)와 각 플레이어 타수를 읽어서 아래 JSON 형식으로만 답해주세요.
+다른 설명 없이 JSON만 출력하세요.
+
+{"holes":[{"hole":1,"par":4,"scores":[플레이어1타수,플레이어2타수,...]},{"hole":2,...},...]}
+
+주의:
+- scores 배열은 위 플레이어 순서와 동일하게
+- 읽을 수 없는 칸은 null
+- 18홀 전부 없어도 있는 홀만 포함
+- JSON 외 텍스트 금지`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-5',
+        max_tokens: 2048,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: scanImageType, data: scanImageBase64 } },
+            { type: 'text', text: prompt }
+          ]
+        }]
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+
+    // JSON 파싱
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('인식 결과에서 JSON을 찾을 수 없습니다.');
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (!Array.isArray(parsed.holes)) throw new Error('올바른 형식이 아닙니다.');
+
+    scanParsedHoles = parsed.holes;
+    renderScanResult(parsed.holes);
+    setScanStatus(`✅ ${parsed.holes.length}개 홀 인식 완료`);
+  } catch (e) {
+    setScanStatus('오류: ' + e.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderScanResult(holes) {
+  const N = CONFIG.players.length;
+  const thead = `<tr><th>홀</th><th>파</th>${CONFIG.players.map(n => `<th>${escapeHtml(n)}</th>`).join('')}</tr>`;
+  const tbody = holes.map(h => {
+    const scores = Array.isArray(h.scores) ? h.scores : [];
+    return `<tr>
+      <td>${h.hole}</td>
+      <td>${h.par ?? '-'}</td>
+      ${Array.from({length: N}, (_, i) => {
+        const s = scores[i];
+        return `<td>${s !== null && s !== undefined ? s : '-'}</td>`;
+      }).join('')}
+    </tr>`;
+  }).join('');
+  document.getElementById('scanResultTable').innerHTML = thead + tbody;
+  document.getElementById('scanResultWrap').style.display = 'block';
+}
+
+function applyScanResult() {
+  if (!scanParsedHoles) return;
+  const N = CONFIG.players.length;
+  scanParsedHoles.forEach(h => {
+    const idx = h.hole - 1;
+    if (idx < 0 || idx >= HOLES) return;
+    if (h.par >= 3 && h.par <= 5) gameData[idx].par = h.par;
+    const scores = Array.isArray(h.scores) ? h.scores : [];
+    for (let i = 0; i < N; i++) {
+      const v = scores[i];
+      gameData[idx].scores[i] = (v !== null && v !== undefined && !isNaN(v)) ? Number(v) : null;
+    }
+  });
+  saveGameData();
+  buildHoles();
+  updateAll();
+  closeScanModal();
 }
 
 // ─────────────────────────────────────────────
