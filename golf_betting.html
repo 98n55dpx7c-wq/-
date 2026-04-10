@@ -648,7 +648,7 @@
       <div class="rule-row">
         <span class="rule-name">🐦 버디 보너스</span>
         <label class="toggle-wrap">
-          <input type="checkbox" id="birdieOn" checked onchange="onRuleToggle('birdie')">
+          <input type="checkbox" id="birdieOn" onchange="onRuleToggle('birdie')">
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -708,7 +708,7 @@
         <input class="rule-mult-input" id="yangpaMultiplier" type="number" min="1" max="20" value="2">
         <span class="rule-mult-label">배</span>
         <label class="toggle-wrap">
-          <input type="checkbox" id="yangpaOn" checked onchange="onRuleToggle('yangpa')">
+          <input type="checkbox" id="yangpaOn" onchange="onRuleToggle('yangpa')">
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -734,7 +734,7 @@
       <div class="rule-row">
         <span class="rule-name">🔁 동점 시 배판 자동 적용</span>
         <label class="toggle-wrap">
-          <input type="checkbox" id="baebanOn" checked onchange="onBaebanToggle()">
+          <input type="checkbox" id="baebanOn" onchange="onBaebanToggle()">
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -785,12 +785,12 @@ let CONFIG = {
   players: ['플레이어1', '플레이어2', '플레이어3', '플레이어4'],
   unit: 1000,
   rules: {
-    birdie:    { enabled: true,  mult: 2 },
+    birdie:    { enabled: false, mult: 2 },
     eagle:     { enabled: false, mult: 3 },
     albatross: { enabled: false, mult: 5 },
     holeinone: { enabled: false, mult: 5 },
-    yangpa:    { enabled: true,  mult: 2, threshold: 'double_par', customOffset: 3 },
-    baeban:    { enabled: true, maxMult: 3 },
+    yangpa:    { enabled: false, mult: 2, threshold: 'double_par', customOffset: 3 },
+    baeban:    { enabled: false, maxMult: 3 },
   }
 };
 
@@ -1498,7 +1498,7 @@ function loadConfig() {
     const defaults = {
       albatross: { enabled: false, mult: 5 },
       holeinone: { enabled: false, mult: 5 },
-      baeban:    { enabled: true,  maxMult: 3 },
+      baeban:    { enabled: false, maxMult: 3 },
     };
     Object.entries(defaults).forEach(([k, v]) => { if (!cfg.rules[k]) cfg.rules[k] = v; });
     if (!cfg.rules.birdie.mode) cfg.rules.birdie.mode = 'multiplier';
