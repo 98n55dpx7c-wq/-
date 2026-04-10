@@ -982,10 +982,18 @@
 
       <div class="scan-section">
         <span class="scan-label">스코어카드 이미지</span>
-        <input type="file" id="scanFileInput" accept="image/*" capture="environment" onchange="onScanImageSelect(this)">
-        <label for="scanFileInput" class="scan-upload-label">
-          📸 사진 촬영 또는 이미지 선택
-        </label>
+        <!-- 카메라 촬영용 -->
+        <input type="file" id="scanFileCamera" accept="image/*" capture="environment" onchange="onScanImageSelect(this)" style="display:none">
+        <!-- 갤러리/파일 선택용 -->
+        <input type="file" id="scanFileInput" accept="image/*" onchange="onScanImageSelect(this)" style="display:none">
+        <div style="display:flex; gap:8px;">
+          <label for="scanFileCamera" class="scan-upload-label" style="flex:1">
+            📸 카메라 촬영
+          </label>
+          <label for="scanFileInput" class="scan-upload-label" style="flex:1">
+            🖼 이미지 선택
+          </label>
+        </div>
         <div id="scanPreview"></div>
       </div>
 
