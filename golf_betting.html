@@ -438,7 +438,6 @@
   }
   .toggle-wrap input:checked + .toggle-slider { background: #1a4a2e; }
   .toggle-wrap input:checked + .toggle-slider:before { transform: translateX(18px); background: #4ec97a; }
-  /* yangpa threshold row */
   .threshold-row {
     background: #0e1e2e;
     border-radius: 10px;
@@ -464,13 +463,6 @@
     display: block;
   }
   .threshold-row .pill-btn.active small { color: #a8d8f8; }
-  #yangpaCustomWrap {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 8px;
-  }
-
   /* start button */
   #startGameBtn {
     display: block;
@@ -993,28 +985,11 @@
 
       <!-- 양파 -->
       <div class="rule-row">
-        <span class="rule-name">🧅 양파 패널티</span>
-        <span class="rule-mult-label">배수</span>
-        <input class="rule-mult-input" id="yangpaMultiplier" type="number" min="1" max="20" value="2">
-        <span class="rule-mult-label">배</span>
+        <span class="rule-name">🧅 양파 패널티 <small style="color:#5a7a9a;font-weight:400">(파×2 이상)</small></span>
         <label class="toggle-wrap">
           <input type="checkbox" id="yangpaOn" onchange="onRuleToggle('yangpa')">
           <span class="toggle-slider"></span>
         </label>
-      </div>
-      <!-- 양파 기준 -->
-      <div id="yangpaThresholdWrap" class="threshold-row">
-        <span class="threshold-label">양파 기준</span>
-        <div class="pill-group" id="yangpaThresholdBtns">
-          <button class="pill-btn active" onclick="onYangpaThreshold('double_par')">더블파<br><small>파×2</small></button>
-          <button class="pill-btn" onclick="onYangpaThreshold('double_bogey')">더블보기<br><small>파+2</small></button>
-          <button class="pill-btn" onclick="onYangpaThreshold('custom')">직접 설정</button>
-        </div>
-        <div id="yangpaCustomWrap" style="display:none; margin-top:8px; display:none">
-          <span class="rule-mult-label">파 +</span>
-          <input class="rule-mult-input" id="yangpaCustomOffset" type="number" min="1" max="10" value="3">
-          <span class="rule-mult-label">타 이상</span>
-        </div>
       </div>
     </div>
 
@@ -1137,7 +1112,7 @@ let CONFIG = {
     eagle:     { enabled: false, mult: 3, mode: 'multiplier', flatAmount: 5000 },
     albatross: { enabled: false, mult: 5, mode: 'multiplier', flatAmount: 10000 },
     holeinone: { enabled: false, mult: 5, mode: 'multiplier', flatAmount: 5000 },
-    yangpa:    { enabled: false, mult: 2, threshold: 'double_par', customOffset: 3 },
+    yangpa:    { enabled: false, mult: 2 },
     baeban:    { enabled: false, maxMult: 3 },
   }
 };
@@ -1230,14 +1205,10 @@ function renderSetupForm() {
       wrap.style.pointerEvents = rule.enabled ? '' : 'none';
     }
   });
-  // yangpa (multiplier only)
+  // yangpa (toggle only)
   {
     const rule = CONFIG.rules.yangpa;
-    if (rule) {
-      document.getElementById('yangpaOn').checked = rule.enabled;
-      document.getElementById('yangpaMultiplier').value = rule.mult;
-      document.getElementById('yangpaMultiplier').disabled = !rule.enabled;
-    }
+    if (rule) document.getElementById('yangpaOn').checked = rule.enabled;
   }
   // Birdie (mode 포함)
   const birdieRule = CONFIG.rules.birdie;
@@ -1247,13 +1218,6 @@ function renderSetupForm() {
   document.getElementById('birdieMultiplier').value = birdieRule.mult;
   document.getElementById('birdieModeWrap').style.opacity = birdieRule.enabled ? '1' : '0.4';
   document.getElementById('birdieModeWrap').style.pointerEvents = birdieRule.enabled ? '' : 'none';
-
-  // Yangpa threshold
-  const threshold = CONFIG.rules.yangpa.threshold || 'double_par';
-  onYangpaThreshold(threshold, false); // false = don't reset customOffset
-  if (threshold === 'custom') {
-    document.getElementById('yangpaCustomOffset').value = CONFIG.rules.yangpa.customOffset || 3;
-  }
 
   // 배판
   const baeban = CONFIG.rules.baeban || { enabled: true, maxMult: 3 };
@@ -1315,10 +1279,6 @@ function onRuleToggle(rule) {
   } else {
     document.getElementById(rule + 'Multiplier').disabled = !enabled;
   }
-  if (rule === 'yangpa') {
-    document.getElementById('yangpaThresholdWrap').style.opacity = enabled ? '1' : '0.4';
-    document.getElementById('yangpaThresholdWrap').style.pointerEvents = enabled ? '' : 'none';
-  }
 }
 
 function onBaebanToggle() {
@@ -1351,20 +1311,7 @@ function onBonusMode(rule, val) {
   document.getElementById(rule + 'FlatRow').style.display = val === 'flat'       ? 'flex' : 'none';
 }
 
-let setupYangpaThreshold = 'double_par';
 
-function onYangpaThreshold(val, resetCustom = true) {
-  setupYangpaThreshold = val;
-  document.querySelectorAll('#yangpaThresholdBtns .pill-btn').forEach((btn, i) => {
-    const vals = ['double_par', 'double_bogey', 'custom'];
-    btn.classList.toggle('active', vals[i] === val);
-  });
-  const customWrap = document.getElementById('yangpaCustomWrap');
-  customWrap.style.display = val === 'custom' ? 'flex' : 'none';
-  if (val === 'custom' && resetCustom) {
-    document.getElementById('yangpaCustomOffset').value = 3;
-  }
-}
 
 function startGame() {
   const activePill = document.querySelector('#playerCountBtns .pill-btn.active');
@@ -1406,14 +1353,10 @@ function startGame() {
     mode: setupBirdieMode,
   };
 
-  // Yangpa with threshold
-  const yangpaMult = parseInt(document.getElementById('yangpaMultiplier').value) || 2;
-  const customOffset = parseInt(document.getElementById('yangpaCustomOffset').value) || 3;
+  // 양파 (파×2 고정, 배수 2배 고정)
   rules.yangpa = {
     enabled: document.getElementById('yangpaOn').checked,
-    mult: Math.max(1, yangpaMult),
-    threshold: setupYangpaThreshold,
-    customOffset: Math.max(1, customOffset),
+    mult: 2,
   };
 
   // 배판
@@ -1532,10 +1475,7 @@ function setScore(h, playerIdx, val) {
 // CALCULATION
 // ─────────────────────────────────────────────
 function yangpaThreshold(par) {
-  const t = CONFIG.rules.yangpa.threshold || 'double_par';
-  if (t === 'double_par')   return par * 2;
-  if (t === 'double_bogey') return par + 2;
-  return par + (CONFIG.rules.yangpa.customOffset || 3);
+  return par * 2;
 }
 
 // Returns true if all players finished and all scored the same
@@ -1935,8 +1875,6 @@ function loadConfig() {
     };
     Object.entries(defaults).forEach(([k, v]) => { if (!cfg.rules[k]) cfg.rules[k] = v; });
     if (!cfg.rules.birdie.mode) cfg.rules.birdie.mode = 'multiplier';
-    if (!cfg.rules.yangpa.threshold) cfg.rules.yangpa.threshold = 'double_par';
-    if (!cfg.rules.yangpa.customOffset) cfg.rules.yangpa.customOffset = 3;
     return cfg;
   } catch(e) { return null; }
 }
