@@ -847,16 +847,11 @@
     <!-- 플레이어 수 -->
     <div class="setup-section">
       <div class="setup-label">참여 인원</div>
-      <div class="pill-group" id="playerCountBtns">
-        <button class="pill-btn" onclick="onPlayerCountChange(2)">2명</button>
-        <button class="pill-btn" onclick="onPlayerCountChange(3)">3명</button>
-        <button class="pill-btn active" onclick="onPlayerCountChange(4)">4명</button>
-        <button class="pill-btn" onclick="onPlayerCountChange(5)">5명</button>
-        <button class="pill-btn" onclick="onPlayerCountChange(6)">6명</button>
-        <button class="pill-btn" onclick="onPlayerCountChange(7)">7명</button>
-        <button class="pill-btn" onclick="onPlayerCountChange(8)">8명</button>
-        <button class="pill-btn" onclick="onPlayerCountChange(9)">9명</button>
-        <button class="pill-btn" onclick="onPlayerCountChange(10)">10명</button>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <input id="playerCountInput" type="number" min="2" value="4"
+          class="rule-mult-input" style="width:64px; font-size:16px; text-align:center;"
+          oninput="onPlayerCountChange(parseInt(this.value)||2)">
+        <span class="rule-mult-label" style="font-size:14px;">명</span>
       </div>
     </div>
 
@@ -1168,9 +1163,7 @@ let setupUnit = 1000; // tracks selected unit in setup form
 
 function renderSetupForm() {
   const n = CONFIG.players.length;
-  document.querySelectorAll('#playerCountBtns .pill-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.textContent === n + '명');
-  });
+  document.getElementById('playerCountInput').value = n;
   renderPlayerNameInputs(n);
 
   // Unit
@@ -1248,9 +1241,7 @@ function renderPlayerNameInputs(count) {
 }
 
 function onPlayerCountChange(n) {
-  document.querySelectorAll('#playerCountBtns .pill-btn').forEach((btn, idx) => {
-    btn.classList.toggle('active', idx + 2 === n);
-  });
+  if (!n || n < 2) return;
   renderPlayerNameInputs(n);
 }
 
@@ -1314,8 +1305,7 @@ function onBonusMode(rule, val) {
 
 
 function startGame() {
-  const activePill = document.querySelector('#playerCountBtns .pill-btn.active');
-  const count = activePill ? parseInt(activePill.textContent) : 4;
+  const count = parseInt(document.getElementById('playerCountInput').value) || 4;
 
   const nameEls = document.querySelectorAll('.player-name-input');
   const names = [...nameEls].map((el, i) => el.value.trim() || ('플레이어' + (i + 1)));
