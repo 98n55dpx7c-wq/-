@@ -596,6 +596,44 @@
   .scan-cell-input::-webkit-inner-spin-button { -webkit-appearance: none; }
   .scan-cell-input:focus { border-color: #4a8fc2; background: #1e3a50; }
   .scan-note { font-size: 11px; color: #5a7a9a; text-align: center; margin-top: 6px; }
+  .scan-key-row { display: flex; gap: 8px; align-items: center; }
+  .scan-key-input {
+    flex: 1;
+    background: #132030;
+    border: 1.5px solid #2a4060;
+    border-radius: 8px;
+    color: #e8edf3;
+    font-size: 12px;
+    padding: 8px 10px;
+    outline: none;
+    font-family: monospace;
+    transition: border-color 0.2s;
+  }
+  .scan-key-input:focus { border-color: #4a8fc2; }
+  .scan-save-btn {
+    padding: 8px 12px;
+    background: #1a3d5c;
+    border: 1px solid #2a5078;
+    border-radius: 8px;
+    color: #7ab8e0;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .scan-save-btn:active { background: #224a6a; }
+  .scan-ai-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    background: #1a3d5c;
+    color: #4a9fc8;
+    border: 1px solid #2a5078;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
   .scan-upload-label {
     display: flex;
     align-items: center;
@@ -979,6 +1017,20 @@
     <div class="scan-overlay" onclick="closeScanModal()"></div>
     <div class="scan-card">
       <h3>📷 스코어표 자동 인식</h3>
+
+      <!-- AI 인식 키 (선택) -->
+      <div class="scan-section">
+        <span class="scan-label">🤖 AI 인식 키 <span class="scan-ai-badge">정확도 향상</span></span>
+        <div class="scan-key-row">
+          <input class="scan-key-input" type="password" id="geminiApiKey" placeholder="Google Gemini API Key">
+          <button class="scan-save-btn" onclick="saveGeminiKey()">저장</button>
+        </div>
+        <div style="font-size:11px; color:#5a7a9a; margin-top:5px; line-height:1.6">
+          키 없이도 기본 OCR 사용 가능 &nbsp;|&nbsp;
+          무료 발급: <span style="color:#4a9fc8">aistudio.google.com</span><br>
+          골프존·스마트스코어 스크린샷은 AI 인식 권장
+        </div>
+      </div>
 
       <div class="scan-section">
         <span class="scan-label">스코어카드 이미지</span>
@@ -1790,27 +1842,37 @@ function resetScores() {
 // ─────────────────────────────────────────────
 // SCAN (스코어카드 자동 인식)
 // ─────────────────────────────────────────────
-let scanImgEl    = null;
+let scanImgEl       = null;
+let scanImgBase64   = null;
+let scanImgType     = null;
 let scanParsedHoles = null;
 
 function openScanModal() {
   document.getElementById('scanModal').style.display = 'block';
+  const saved = localStorage.getItem('geminiApiKey');
+  if (saved) document.getElementById('geminiApiKey').value = saved;
 }
 function closeScanModal() {
   document.getElementById('scanModal').style.display = 'none';
+}
+function saveGeminiKey() {
+  const k = document.getElementById('geminiApiKey').value.trim();
+  if (k) { localStorage.setItem('geminiApiKey', k); setScanStatus('API 키 저장됨'); }
 }
 
 function onScanImageSelect(input) {
   const file = input.files[0];
   if (!file) return;
+  scanImgType = file.type || 'image/jpeg';
   const reader = new FileReader();
   reader.onload = e => {
     const dataUrl = e.target.result;
+    scanImgBase64 = dataUrl.split(',')[1];
     const img = new Image();
     img.onload = () => {
       scanImgEl = img;
       document.getElementById('scanPreview').innerHTML =
-        `<img src="${dataUrl}" alt="미리보기">`;
+        `<img src="${dataUrl}" alt="미리보기" style="max-width:100%;max-height:220px;border-radius:8px">`;
       document.getElementById('analyzeBtn').disabled = false;
       document.getElementById('scanResultWrap').style.display = 'none';
       setScanStatus('');
@@ -1826,154 +1888,208 @@ function setScanStatus(msg, isError = false) {
   el.className = 'scan-status' + (isError ? ' error' : '');
 }
 
-// Tesseract.js 지연 로드
-async function loadTesseract() {
-  if (window.Tesseract) return;
-  setScanStatus('⏳ OCR 엔진 로딩 중... (최초 1회, 약 5~10초)');
-  return new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-    s.onload = resolve;
-    s.onerror = () => reject(new Error('OCR 라이브러리 로드 실패. 네트워크를 확인해주세요.'));
-    document.head.appendChild(s);
-  });
-}
-
-// 이미지 전처리: 흑백 + 대비 강화
-function preprocessForOCR(img) {
-  const MAX = 2400;
-  const scale = Math.min(MAX / Math.max(img.naturalWidth, img.naturalHeight), 2);
-  const w = Math.round(img.naturalWidth  * scale);
-  const h = Math.round(img.naturalHeight * scale);
-  const canvas = document.createElement('canvas');
-  canvas.width = w; canvas.height = h;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0, w, h);
-  const id = ctx.getImageData(0, 0, w, h);
-  const d = id.data;
-  for (let i = 0; i < d.length; i += 4) {
-    const g = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
-    const v = g > 150 ? 255 : 0; // 이진화
-    d[i] = d[i+1] = d[i+2] = v;
-  }
-  ctx.putImageData(id, 0, 0);
-  return canvas;
-}
-
-// Y 좌표 기준으로 단어들을 행으로 그룹화
-function groupIntoRows(words) {
-  if (!words.length) return [];
-  const sorted = [...words].sort((a, b) => a.y - b.y);
-  const avgH = sorted.reduce((s, w) => s + w.h, 0) / sorted.length;
-  const tol  = avgH * 0.55;
-  const rows = [];
-  let cur = [sorted[0]];
-  for (let i = 1; i < sorted.length; i++) {
-    const rowY = cur.reduce((s, r) => s + r.y, 0) / cur.length;
-    if (Math.abs(sorted[i].y - rowY) <= tol) cur.push(sorted[i]);
-    else { rows.push(cur.sort((a,b) => a.x - b.x)); cur = [sorted[i]]; }
-  }
-  rows.push(cur.sort((a,b) => a.x - b.x));
-  return rows;
-}
-
-// 행 데이터에서 홀별 구조 파악
-function parseHoles(rows) {
-  const N = CONFIG.players.length;
-  const numRows = rows.map(row => row.map(w => parseInt(w.text)).filter(v => !isNaN(v)));
-
-  // 홀 번호 행 찾기: 1부터 시작하는 연속 수열 포함
-  let holeRowIdx = -1;
-  let holeNums   = [];
-  for (let i = 0; i < numRows.length; i++) {
-    const r = numRows[i];
-    if (r.includes(1) && r.length >= 4) {
-      // 연속성 확인
-      const sorted = [...new Set(r)].sort((a,b) => a-b);
-      const consecutive = sorted.filter((v,j) => j === 0 || v === sorted[j-1]+1);
-      if (consecutive.length >= 4) { holeRowIdx = i; holeNums = r; break; }
-    }
-  }
-
-  // 홀 행 못 찾으면 1~18 가정
-  if (holeRowIdx === -1) {
-    holeNums = Array.from({length: 18}, (_, i) => i + 1);
-  }
-
-  const otherRows = numRows.filter((_, i) => i !== holeRowIdx);
-
-  // 파 행 찾기: 모든 값이 3~5
-  let parRowIdx = -1, parVals = [];
-  for (let i = 0; i < otherRows.length; i++) {
-    const r = otherRows[i];
-    if (r.length >= holeNums.length - 2 && r.every(v => v >= 3 && v <= 5)) {
-      parRowIdx = i; parVals = r; break;
-    }
-  }
-
-  const scoreRows = otherRows.filter((_, i) => i !== parRowIdx);
-
-  return holeNums.map((hole, hi) => ({
-    hole,
-    par: parVals[hi] ?? 4,
-    scores: Array.from({length: N}, (_, pi) => {
-      const v = scoreRows[pi]?.[hi];
-      return (v !== undefined && v >= 1 && v <= 15) ? v : null;
-    }),
-  }));
-}
-
+// ── 메인 분석 진입점: Gemini 있으면 AI, 없으면 Tesseract ──
 async function analyzeScorecard() {
   if (!scanImgEl) { setScanStatus('이미지를 선택해주세요.', true); return; }
   const btn = document.getElementById('analyzeBtn');
   btn.disabled = true;
   document.getElementById('scanResultWrap').style.display = 'none';
 
+  const geminiKey = document.getElementById('geminiApiKey').value.trim();
   try {
-    await loadTesseract();
-    setScanStatus('⏳ 숫자 인식 중...');
-
-    const canvas = preprocessForOCR(scanImgEl);
-    const worker = await Tesseract.createWorker('eng');
-    await worker.setParameters({ tessedit_char_whitelist: '0123456789' });
-    const { data } = await worker.recognize(canvas);
-    await worker.terminate();
-
-    const words = data.words
-      .map(w => ({ text: w.text.trim(), x: w.bbox.x0, y: w.bbox.y0, h: w.bbox.y1 - w.bbox.y0 }))
-      .filter(w => /^\d+$/.test(w.text));
-
-    if (!words.length) throw new Error('숫자를 인식하지 못했습니다. 더 선명한 이미지를 사용해주세요.');
-
-    const rows   = groupIntoRows(words);
-    const parsed = parseHoles(rows);
-
-    scanParsedHoles = parsed;
-    renderScanResult(parsed);
-    setScanStatus('✅ 인식 완료 — 오류가 있으면 직접 수정 후 적용하세요.');
-  } catch (e) {
-    setScanStatus('오류: ' + e.message, true);
+    if (geminiKey) {
+      await analyzeWithGemini(geminiKey);
+    } else {
+      await analyzeWithTesseract();
+    }
   } finally {
     btn.disabled = false;
   }
 }
 
-// 편집 가능한 테이블로 결과 표시
+// ── Gemini Vision API ──
+async function analyzeWithGemini(apiKey) {
+  setScanStatus('⏳ AI 이미지 분석 중...');
+  const playerList = CONFIG.players.map((n, i) => `${i+1}. ${n}`).join(', ');
+  const prompt = `이 이미지는 골프 스코어카드입니다 (골프존 또는 스마트스코어 앱 화면일 수 있음).
+
+현재 플레이어 (순서 중요): ${playerList}
+
+각 홀(1~18홀)의 파(par)와 각 플레이어 타수를 읽어서 아래 JSON으로만 답하세요. 다른 텍스트는 절대 포함하지 마세요.
+
+{"holes":[{"hole":1,"par":4,"scores":[플레이어1타수,플레이어2타수,...]},{"hole":2,"par":4,"scores":[...]},...]
+
+규칙:
+- scores 배열 순서는 위 플레이어 순서와 동일
+- 읽을 수 없는 값은 null
+- 앞9홀만 있으면 그것만, 18홀 전부 있으면 전부 포함`;
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [
+            { inline_data: { mime_type: scanImgType, data: scanImgBase64 } },
+            { text: prompt }
+          ]}],
+          generationConfig: { temperature: 0, maxOutputTokens: 2048 }
+        })
+      }
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('AI 응답에서 JSON을 찾을 수 없습니다.');
+    const parsed = JSON.parse(match[0]);
+    if (!Array.isArray(parsed.holes) || !parsed.holes.length)
+      throw new Error('인식된 홀 데이터가 없습니다.');
+    scanParsedHoles = parsed.holes;
+    renderScanResult(parsed.holes);
+    setScanStatus(`✅ AI 인식 완료 (${parsed.holes.length}홀) — 확인 후 적용하세요.`);
+  } catch (e) {
+    setScanStatus('AI 오류: ' + e.message, true);
+  }
+}
+
+// ── Tesseract.js (폴백) ──
+async function loadTesseract() {
+  if (window.Tesseract) return;
+  setScanStatus('⏳ OCR 엔진 로딩 중... (최초 1회, 약 10초)');
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('OCR 라이브러리 로드 실패'));
+    document.head.appendChild(s);
+  });
+}
+
+function preprocessForOCR(img) {
+  const MAX = 3000;
+  const scale = Math.min(MAX / Math.max(img.naturalWidth, img.naturalHeight), 3);
+  const w = Math.round(img.naturalWidth * scale);
+  const h = Math.round(img.naturalHeight * scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  // 흰 배경 → 어두운 배경의 스코어카드도 반전
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(img, 0, 0, w, h);
+  const id = ctx.getImageData(0, 0, w, h);
+  const d = id.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const g = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+    // 대비 강화 후 이진화
+    const c = Math.min(255, Math.max(0, (g - 128) * 2 + 128));
+    d[i] = d[i+1] = d[i+2] = c > 160 ? 255 : 0;
+  }
+  ctx.putImageData(id, 0, 0);
+  return canvas;
+}
+
+function groupIntoRows(words) {
+  if (!words.length) return [];
+  const sorted = [...words].sort((a, b) => a.y - b.y);
+  const avgH = sorted.reduce((s, w) => s + w.h, 0) / sorted.length;
+  const tol  = Math.max(avgH * 0.6, 8);
+  const rows  = [];
+  let cur = [sorted[0]];
+  for (let i = 1; i < sorted.length; i++) {
+    const rowY = cur.reduce((s, r) => s + r.y, 0) / cur.length;
+    if (Math.abs(sorted[i].y - rowY) <= tol) cur.push(sorted[i]);
+    else { rows.push(cur.sort((a, b) => a.x - b.x)); cur = [sorted[i]]; }
+  }
+  rows.push(cur.sort((a, b) => a.x - b.x));
+  return rows;
+}
+
+function parseHolesFromRows(rows) {
+  const N = CONFIG.players.length;
+  const numRows = rows.map(row =>
+    row.map(w => parseInt(w.text)).filter(v => !isNaN(v) && v > 0)
+  ).filter(r => r.length >= 2);
+
+  // 홀 번호 행: 1 포함 + 연속 수열
+  let holeRowIdx = -1, holeNums = [];
+  for (let i = 0; i < numRows.length; i++) {
+    const r = numRows[i];
+    if (!r.includes(1)) continue;
+    const uniq = [...new Set(r)].sort((a,b)=>a-b);
+    const consec = uniq.filter((v,j) => j===0 || v===uniq[j-1]+1);
+    if (consec.length >= 4) { holeRowIdx = i; holeNums = r; break; }
+  }
+  if (holeRowIdx === -1) holeNums = Array.from({length:18},(_,i)=>i+1);
+
+  const other = numRows.filter((_,i) => i !== holeRowIdx);
+
+  // 파 행: 값이 모두 3~5
+  let parIdx = -1, parVals = [];
+  for (let i = 0; i < other.length; i++) {
+    if (other[i].length >= Math.max(4, holeNums.length - 3) && other[i].every(v => v>=3&&v<=5)) {
+      parIdx = i; parVals = other[i]; break;
+    }
+  }
+
+  const scoreRows = other.filter((_,i) => i !== parIdx);
+  return holeNums.map((hole, hi) => ({
+    hole,
+    par: parVals[hi] ?? 4,
+    scores: Array.from({length: N}, (_, pi) => {
+      const v = scoreRows[pi]?.[hi];
+      return (v !== undefined && v >= 1 && v <= 20) ? v : null;
+    }),
+  }));
+}
+
+async function analyzeWithTesseract() {
+  try {
+    await loadTesseract();
+    setScanStatus('⏳ 숫자 인식 중...');
+    const canvas = preprocessForOCR(scanImgEl);
+    const worker = await Tesseract.createWorker('eng');
+    await worker.setParameters({
+      tessedit_char_whitelist: '0123456789',
+      tessedit_pageseg_mode: '6',  // uniform block
+    });
+    const { data } = await worker.recognize(canvas);
+    await worker.terminate();
+
+    const words = data.words
+      .map(w => ({ text: w.text.trim(), x: w.bbox.x0, y: w.bbox.y0, h: w.bbox.y1 - w.bbox.y0 }))
+      .filter(w => /^\d+$/.test(w.text) && w.text.length <= 2);
+
+    if (!words.length) throw new Error('숫자를 인식하지 못했습니다. Gemini API 키를 사용하면 더 정확합니다.');
+    const rows   = groupIntoRows(words);
+    const parsed = parseHolesFromRows(rows);
+    scanParsedHoles = parsed;
+    renderScanResult(parsed);
+    setScanStatus('✅ 인식 완료 — 오류가 있으면 셀을 클릭해 직접 수정하세요. (AI 키 사용 시 더 정확)');
+  } catch (e) {
+    setScanStatus('오류: ' + e.message, true);
+  }
+}
+
+// ── 편집 가능한 결과 테이블 ──
 function renderScanResult(holes) {
   const N = CONFIG.players.length;
-  const thead = `<tr>
-    <th>홀</th><th>파</th>
-    ${CONFIG.players.map(n => `<th>${escapeHtml(n)}</th>`).join('')}
-  </tr>`;
+  const thead = `<tr><th>홀</th><th>파</th>${CONFIG.players.map(n=>`<th>${escapeHtml(n)}</th>`).join('')}</tr>`;
   const tbody = holes.map((h, hi) =>
     `<tr>
-      <td style="color:#7a9fc2;font-weight:700">${h.hole}</td>
+      <td style="color:#7a9fc2;font-weight:700;padding:3px 4px">${h.hole}</td>
       <td><input class="scan-cell-input" type="number" min="3" max="5"
-        data-hole="${hi}" data-col="par" value="${h.par ?? 4}"></td>
-      ${Array.from({length: N}, (_, pi) => {
-        const v = h.scores[pi];
-        return `<td><input class="scan-cell-input" type="number" min="1" max="15"
-          data-hole="${hi}" data-col="${pi}" value="${v ?? ''}" placeholder="-"></td>`;
+        data-hi="${hi}" data-col="par" value="${h.par??4}"></td>
+      ${Array.from({length:N},(_,pi)=>{
+        const v=h.scores[pi];
+        return `<td><input class="scan-cell-input" type="number" min="1" max="20"
+          data-hi="${hi}" data-col="${pi}" value="${v??''}" placeholder="-"></td>`;
       }).join('')}
     </tr>`
   ).join('');
@@ -1982,28 +2098,19 @@ function renderScanResult(holes) {
 }
 
 function applyScanResult() {
-  const inputs = document.querySelectorAll('#scanResultTable .scan-cell-input');
-  // 편집된 값 읽기
-  const edited = {}; // {holeIdx: {par, scores[]}}
-  inputs.forEach(inp => {
-    const hi  = parseInt(inp.dataset.hole);
-    const col = inp.dataset.col;
-    if (!edited[hi]) edited[hi] = { par: null, scores: [] };
-    const v = inp.value === '' ? null : parseInt(inp.value);
-    if (col === 'par') edited[hi].par = v;
-    else edited[hi].scores[parseInt(col)] = v;
-  });
-
   const N = CONFIG.players.length;
-  Object.entries(edited).forEach(([hi, d]) => {
-    const h = scanParsedHoles[parseInt(hi)];
+  document.querySelectorAll('#scanResultTable .scan-cell-input').forEach(inp => {
+    const hi  = parseInt(inp.dataset.hi);
+    const col = inp.dataset.col;
+    const h   = scanParsedHoles[hi];
     if (!h) return;
     const idx = h.hole - 1;
     if (idx < 0 || idx >= HOLES) return;
-    if (d.par >= 3 && d.par <= 5) gameData[idx].par = d.par;
-    for (let i = 0; i < N; i++) {
-      const v = d.scores[i];
-      gameData[idx].scores[i] = (v !== null && !isNaN(v)) ? v : null;
+    const v = inp.value === '' ? null : parseInt(inp.value);
+    if (col === 'par') { if (v >= 3 && v <= 5) gameData[idx].par = v; }
+    else {
+      const pi = parseInt(col);
+      if (pi < N) gameData[idx].scores[pi] = (!isNaN(v) && v !== null) ? v : null;
     }
   });
   saveGameData();
