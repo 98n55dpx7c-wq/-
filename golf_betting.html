@@ -564,36 +564,38 @@
     margin-bottom: 7px;
     display: block;
   }
-  .scan-key-row {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-  .scan-key-input {
-    flex: 1;
-    background: #132030;
-    border: 1.5px solid #2a4060;
-    border-radius: 8px;
-    color: #e8edf3;
-    font-size: 13px;
-    padding: 9px 10px;
-    outline: none;
-    font-family: monospace;
-    transition: border-color 0.2s;
-  }
-  .scan-key-input:focus { border-color: #4a8fc2; }
-  .scan-save-btn {
-    padding: 9px 12px;
-    background: #1a3d5c;
-    border: 1px solid #2a5078;
-    border-radius: 8px;
-    color: #7ab8e0;
+  .scan-edit-table {
+    width: 100%;
+    border-collapse: collapse;
     font-size: 12px;
+  }
+  .scan-edit-table th {
+    color: #7a9fc2;
+    padding: 4px 3px;
+    text-align: center;
     font-weight: 700;
-    cursor: pointer;
+    border-bottom: 1px solid #2a3f58;
     white-space: nowrap;
   }
-  .scan-save-btn:active { background: #224a6a; }
+  .scan-edit-table td { padding: 2px 2px; text-align: center; }
+  .scan-cell-input {
+    width: 36px;
+    background: #1a2d42;
+    border: 1px solid #2a4060;
+    border-radius: 5px;
+    color: #e8edf3;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    padding: 4px 2px;
+    outline: none;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  .scan-cell-input::-webkit-outer-spin-button,
+  .scan-cell-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .scan-cell-input:focus { border-color: #4a8fc2; background: #1e3a50; }
+  .scan-note { font-size: 11px; color: #5a7a9a; text-align: center; margin-top: 6px; }
   .scan-upload-label {
     display: flex;
     align-items: center;
@@ -979,17 +981,6 @@
       <h3>📷 스코어표 자동 인식</h3>
 
       <div class="scan-section">
-        <span class="scan-label">Anthropic API Key</span>
-        <div class="scan-key-row">
-          <input class="scan-key-input" type="password" id="scanApiKey" placeholder="sk-ant-api03-...">
-          <button class="scan-save-btn" onclick="saveApiKey()">저장</button>
-        </div>
-        <div style="font-size:11px; color:#5a7a9a; margin-top:6px;">
-          키는 이 기기에만 저장되며 외부로 전송되지 않습니다.
-        </div>
-      </div>
-
-      <div class="scan-section">
         <span class="scan-label">스코어카드 이미지</span>
         <input type="file" id="scanFileInput" accept="image/*" capture="environment" onchange="onScanImageSelect(this)">
         <label for="scanFileInput" class="scan-upload-label">
@@ -1007,7 +998,8 @@
         <div class="scan-result-box">
           <div class="scan-result-title">인식 결과 확인</div>
           <div style="overflow-x:auto">
-            <table class="scan-result-table" id="scanResultTable"></table>
+            <table class="scan-edit-table" id="scanResultTable"></table>
+          <p class="scan-note">셀을 직접 클릭하여 잘못 인식된 값을 수정할 수 있습니다.</p>
           </div>
         </div>
         <button class="scan-apply-btn" onclick="applyScanResult()">✅ 점수 적용</button>
@@ -1790,26 +1782,14 @@ function resetScores() {
 // ─────────────────────────────────────────────
 // SCAN (스코어카드 자동 인식)
 // ─────────────────────────────────────────────
-let scanImageBase64 = null;
-let scanImageType   = null;
+let scanImgEl    = null;
 let scanParsedHoles = null;
 
 function openScanModal() {
   document.getElementById('scanModal').style.display = 'block';
-  // 저장된 API 키 복원
-  const saved = localStorage.getItem('anthropicApiKey');
-  if (saved) document.getElementById('scanApiKey').value = saved;
 }
-
 function closeScanModal() {
   document.getElementById('scanModal').style.display = 'none';
-}
-
-function saveApiKey() {
-  const key = document.getElementById('scanApiKey').value.trim();
-  if (!key) return;
-  localStorage.setItem('anthropicApiKey', key);
-  setScanStatus('API 키가 저장되었습니다.', false);
 }
 
 function onScanImageSelect(input) {
@@ -1818,15 +1798,16 @@ function onScanImageSelect(input) {
   const reader = new FileReader();
   reader.onload = e => {
     const dataUrl = e.target.result;
-    const [header, b64] = dataUrl.split(',');
-    scanImageBase64 = b64;
-    scanImageType   = file.type || 'image/jpeg';
-    // 미리보기
-    document.getElementById('scanPreview').innerHTML =
-      `<img src="${dataUrl}" alt="미리보기">`;
-    document.getElementById('analyzeBtn').disabled = false;
-    document.getElementById('scanResultWrap').style.display = 'none';
-    setScanStatus('');
+    const img = new Image();
+    img.onload = () => {
+      scanImgEl = img;
+      document.getElementById('scanPreview').innerHTML =
+        `<img src="${dataUrl}" alt="미리보기">`;
+      document.getElementById('analyzeBtn').disabled = false;
+      document.getElementById('scanResultWrap').style.display = 'none';
+      setScanStatus('');
+    };
+    img.src = dataUrl;
   };
   reader.readAsDataURL(file);
 }
@@ -1837,72 +1818,131 @@ function setScanStatus(msg, isError = false) {
   el.className = 'scan-status' + (isError ? ' error' : '');
 }
 
-async function analyzeScorecard() {
-  const apiKey = document.getElementById('scanApiKey').value.trim();
-  if (!apiKey) { setScanStatus('API 키를 입력해주세요.', true); return; }
-  if (!scanImageBase64) { setScanStatus('이미지를 선택해주세요.', true); return; }
+// Tesseract.js 지연 로드
+async function loadTesseract() {
+  if (window.Tesseract) return;
+  setScanStatus('⏳ OCR 엔진 로딩 중... (최초 1회, 약 5~10초)');
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('OCR 라이브러리 로드 실패. 네트워크를 확인해주세요.'));
+    document.head.appendChild(s);
+  });
+}
 
+// 이미지 전처리: 흑백 + 대비 강화
+function preprocessForOCR(img) {
+  const MAX = 2400;
+  const scale = Math.min(MAX / Math.max(img.naturalWidth, img.naturalHeight), 2);
+  const w = Math.round(img.naturalWidth  * scale);
+  const h = Math.round(img.naturalHeight * scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, w, h);
+  const id = ctx.getImageData(0, 0, w, h);
+  const d = id.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const g = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+    const v = g > 150 ? 255 : 0; // 이진화
+    d[i] = d[i+1] = d[i+2] = v;
+  }
+  ctx.putImageData(id, 0, 0);
+  return canvas;
+}
+
+// Y 좌표 기준으로 단어들을 행으로 그룹화
+function groupIntoRows(words) {
+  if (!words.length) return [];
+  const sorted = [...words].sort((a, b) => a.y - b.y);
+  const avgH = sorted.reduce((s, w) => s + w.h, 0) / sorted.length;
+  const tol  = avgH * 0.55;
+  const rows = [];
+  let cur = [sorted[0]];
+  for (let i = 1; i < sorted.length; i++) {
+    const rowY = cur.reduce((s, r) => s + r.y, 0) / cur.length;
+    if (Math.abs(sorted[i].y - rowY) <= tol) cur.push(sorted[i]);
+    else { rows.push(cur.sort((a,b) => a.x - b.x)); cur = [sorted[i]]; }
+  }
+  rows.push(cur.sort((a,b) => a.x - b.x));
+  return rows;
+}
+
+// 행 데이터에서 홀별 구조 파악
+function parseHoles(rows) {
+  const N = CONFIG.players.length;
+  const numRows = rows.map(row => row.map(w => parseInt(w.text)).filter(v => !isNaN(v)));
+
+  // 홀 번호 행 찾기: 1부터 시작하는 연속 수열 포함
+  let holeRowIdx = -1;
+  let holeNums   = [];
+  for (let i = 0; i < numRows.length; i++) {
+    const r = numRows[i];
+    if (r.includes(1) && r.length >= 4) {
+      // 연속성 확인
+      const sorted = [...new Set(r)].sort((a,b) => a-b);
+      const consecutive = sorted.filter((v,j) => j === 0 || v === sorted[j-1]+1);
+      if (consecutive.length >= 4) { holeRowIdx = i; holeNums = r; break; }
+    }
+  }
+
+  // 홀 행 못 찾으면 1~18 가정
+  if (holeRowIdx === -1) {
+    holeNums = Array.from({length: 18}, (_, i) => i + 1);
+  }
+
+  const otherRows = numRows.filter((_, i) => i !== holeRowIdx);
+
+  // 파 행 찾기: 모든 값이 3~5
+  let parRowIdx = -1, parVals = [];
+  for (let i = 0; i < otherRows.length; i++) {
+    const r = otherRows[i];
+    if (r.length >= holeNums.length - 2 && r.every(v => v >= 3 && v <= 5)) {
+      parRowIdx = i; parVals = r; break;
+    }
+  }
+
+  const scoreRows = otherRows.filter((_, i) => i !== parRowIdx);
+
+  return holeNums.map((hole, hi) => ({
+    hole,
+    par: parVals[hi] ?? 4,
+    scores: Array.from({length: N}, (_, pi) => {
+      const v = scoreRows[pi]?.[hi];
+      return (v !== undefined && v >= 1 && v <= 15) ? v : null;
+    }),
+  }));
+}
+
+async function analyzeScorecard() {
+  if (!scanImgEl) { setScanStatus('이미지를 선택해주세요.', true); return; }
   const btn = document.getElementById('analyzeBtn');
   btn.disabled = true;
-  setScanStatus('⏳ 인식 중... (수 초 소요)');
   document.getElementById('scanResultWrap').style.display = 'none';
 
-  const playerList = CONFIG.players.map((n, i) => `${i + 1}. ${n}`).join('\n');
-  const prompt = `이 골프 스코어카드 이미지를 분석해주세요.
-
-현재 플레이어 목록 (순서 중요):
-${playerList}
-
-각 홀의 파(par)와 각 플레이어 타수를 읽어서 아래 JSON 형식으로만 답해주세요.
-다른 설명 없이 JSON만 출력하세요.
-
-{"holes":[{"hole":1,"par":4,"scores":[플레이어1타수,플레이어2타수,...]},{"hole":2,...},...]}
-
-주의:
-- scores 배열은 위 플레이어 순서와 동일하게
-- 읽을 수 없는 칸은 null
-- 18홀 전부 없어도 있는 홀만 포함
-- JSON 외 텍스트 금지`;
-
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-opus-4-5',
-        max_tokens: 2048,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: scanImageType, data: scanImageBase64 } },
-            { type: 'text', text: prompt }
-          ]
-        }]
-      })
-    });
+    await loadTesseract();
+    setScanStatus('⏳ 숫자 인식 중...');
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message || `HTTP ${res.status}`);
-    }
+    const canvas = preprocessForOCR(scanImgEl);
+    const worker = await Tesseract.createWorker('eng');
+    await worker.setParameters({ tessedit_char_whitelist: '0123456789' });
+    const { data } = await worker.recognize(canvas);
+    await worker.terminate();
 
-    const data = await res.json();
-    const text = data.content?.[0]?.text || '';
+    const words = data.words
+      .map(w => ({ text: w.text.trim(), x: w.bbox.x0, y: w.bbox.y0, h: w.bbox.y1 - w.bbox.y0 }))
+      .filter(w => /^\d+$/.test(w.text));
 
-    // JSON 파싱
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('인식 결과에서 JSON을 찾을 수 없습니다.');
-    const parsed = JSON.parse(jsonMatch[0]);
-    if (!Array.isArray(parsed.holes)) throw new Error('올바른 형식이 아닙니다.');
+    if (!words.length) throw new Error('숫자를 인식하지 못했습니다. 더 선명한 이미지를 사용해주세요.');
 
-    scanParsedHoles = parsed.holes;
-    renderScanResult(parsed.holes);
-    setScanStatus(`✅ ${parsed.holes.length}개 홀 인식 완료`);
+    const rows   = groupIntoRows(words);
+    const parsed = parseHoles(rows);
+
+    scanParsedHoles = parsed;
+    renderScanResult(parsed);
+    setScanStatus('✅ 인식 완료 — 오류가 있으면 직접 수정 후 적용하세요.');
   } catch (e) {
     setScanStatus('오류: ' + e.message, true);
   } finally {
@@ -1910,35 +1950,52 @@ ${playerList}
   }
 }
 
+// 편집 가능한 테이블로 결과 표시
 function renderScanResult(holes) {
   const N = CONFIG.players.length;
-  const thead = `<tr><th>홀</th><th>파</th>${CONFIG.players.map(n => `<th>${escapeHtml(n)}</th>`).join('')}</tr>`;
-  const tbody = holes.map(h => {
-    const scores = Array.isArray(h.scores) ? h.scores : [];
-    return `<tr>
-      <td>${h.hole}</td>
-      <td>${h.par ?? '-'}</td>
-      ${Array.from({length: N}, (_, i) => {
-        const s = scores[i];
-        return `<td>${s !== null && s !== undefined ? s : '-'}</td>`;
+  const thead = `<tr>
+    <th>홀</th><th>파</th>
+    ${CONFIG.players.map(n => `<th>${escapeHtml(n)}</th>`).join('')}
+  </tr>`;
+  const tbody = holes.map((h, hi) =>
+    `<tr>
+      <td style="color:#7a9fc2;font-weight:700">${h.hole}</td>
+      <td><input class="scan-cell-input" type="number" min="3" max="5"
+        data-hole="${hi}" data-col="par" value="${h.par ?? 4}"></td>
+      ${Array.from({length: N}, (_, pi) => {
+        const v = h.scores[pi];
+        return `<td><input class="scan-cell-input" type="number" min="1" max="15"
+          data-hole="${hi}" data-col="${pi}" value="${v ?? ''}" placeholder="-"></td>`;
       }).join('')}
-    </tr>`;
-  }).join('');
+    </tr>`
+  ).join('');
   document.getElementById('scanResultTable').innerHTML = thead + tbody;
   document.getElementById('scanResultWrap').style.display = 'block';
 }
 
 function applyScanResult() {
-  if (!scanParsedHoles) return;
+  const inputs = document.querySelectorAll('#scanResultTable .scan-cell-input');
+  // 편집된 값 읽기
+  const edited = {}; // {holeIdx: {par, scores[]}}
+  inputs.forEach(inp => {
+    const hi  = parseInt(inp.dataset.hole);
+    const col = inp.dataset.col;
+    if (!edited[hi]) edited[hi] = { par: null, scores: [] };
+    const v = inp.value === '' ? null : parseInt(inp.value);
+    if (col === 'par') edited[hi].par = v;
+    else edited[hi].scores[parseInt(col)] = v;
+  });
+
   const N = CONFIG.players.length;
-  scanParsedHoles.forEach(h => {
+  Object.entries(edited).forEach(([hi, d]) => {
+    const h = scanParsedHoles[parseInt(hi)];
+    if (!h) return;
     const idx = h.hole - 1;
     if (idx < 0 || idx >= HOLES) return;
-    if (h.par >= 3 && h.par <= 5) gameData[idx].par = h.par;
-    const scores = Array.isArray(h.scores) ? h.scores : [];
+    if (d.par >= 3 && d.par <= 5) gameData[idx].par = d.par;
     for (let i = 0; i < N; i++) {
-      const v = scores[i];
-      gameData[idx].scores[i] = (v !== null && v !== undefined && !isNaN(v)) ? Number(v) : null;
+      const v = d.scores[i];
+      gameData[idx].scores[i] = (v !== null && !isNaN(v)) ? v : null;
     }
   });
   saveGameData();
