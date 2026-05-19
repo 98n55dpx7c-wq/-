@@ -1355,8 +1355,7 @@ function renderSetupForm() {
   document.getElementById('baebanNplusCount').value = np.count || 2;
   document.getElementById('baebanNplusWrap').style.opacity = np.enabled ? '1' : '0.4';
   document.getElementById('baebanNplusWrap').style.pointerEvents = np.enabled ? '' : 'none';
-  document.getElementById('baebanDetailWrap').style.opacity = baeban.enabled ? '1' : '0.4';
-  document.getElementById('baebanDetailWrap').style.pointerEvents = baeban.enabled ? '' : 'none';
+  // baebanDetailWrap은 항상 표시
 }
 
 function renderPlayerNameInputs(count) {
@@ -1412,9 +1411,7 @@ function onRuleToggle(rule) {
 }
 
 function onBaebanToggle() {
-  const enabled = document.getElementById('baebanOn').checked;
-  document.getElementById('baebanDetailWrap').style.opacity = enabled ? '1' : '0.4';
-  document.getElementById('baebanDetailWrap').style.pointerEvents = enabled ? '' : 'none';
+  // 세부 옵션은 항상 표시 (주 토글은 계산 여부만 제어)
 }
 
 function onBaebanNplusToggle() {
@@ -2035,7 +2032,7 @@ function loadConfig() {
     const s = localStorage.getItem('golfBettingConfig');
     if (!s) return null;
     const cfg = JSON.parse(s);
-    if (!Array.isArray(cfg.players) || cfg.players.length < 2 || cfg.players.length > 10) return null;
+    if (!Array.isArray(cfg.players) || cfg.players.length < 2) return null;
     if (!cfg.unit || cfg.unit <= 0) return null;
     if (!cfg.rules) return null;
     // Backfill new rule fields for configs saved before this version
