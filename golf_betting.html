@@ -1483,7 +1483,8 @@ function onRuleToggle(rule) {
       wrap.style.pointerEvents = enabled ? '' : 'none';
     }
   } else {
-    document.getElementById(rule + 'Multiplier').disabled = !enabled;
+    const multEl = document.getElementById(rule + 'Multiplier');
+    if (multEl) multEl.disabled = !enabled;
   }
 }
 
@@ -1821,6 +1822,22 @@ function getBaebanCount(holeIdx) {
   return count;
 }
 
+function getFullBaebanCount(holeIdx) {
+  const base = getBaebanCount(holeIdx) + getSameScoreNPlusCount(holeIdx) + getOverparBaebanCount(holeIdx);
+  const { par, scores } = gameData[holeIdx];
+  if (scores.some(s => s === null)) return base;
+  const isHoleinone = scores.map(s => s === 1);
+  const isAlbatross = scores.map((s, i) => !isHoleinone[i] && s <= par - 3);
+  const isEagle     = scores.map((s, i) => !isHoleinone[i] && !isAlbatross[i] && s <= par - 2);
+  const isBirdie    = scores.map((s, i) => !isHoleinone[i] && !isAlbatross[i] && !isEagle[i] && s <= par - 1);
+  let bonus = 0;
+  if (CONFIG.rules.birdie?.enabled    && (CONFIG.rules.birdie?.mode    || 'baeban')     === 'baeban' && isBirdie.some(Boolean))    bonus++;
+  if (CONFIG.rules.eagle?.enabled     && (CONFIG.rules.eagle?.mode     || 'multiplier') === 'baeban' && isEagle.some(Boolean))     bonus++;
+  if (CONFIG.rules.albatross?.enabled && (CONFIG.rules.albatross?.mode || 'multiplier') === 'baeban' && isAlbatross.some(Boolean)) bonus++;
+  if (CONFIG.rules.holeinone?.enabled && (CONFIG.rules.holeinone?.mode || 'multiplier') === 'baeban' && isHoleinone.some(Boolean)) bonus++;
+  return base + bonus;
+}
+
 function calcHoleDelta(holeIdx) {
   const { par, scores } = gameData[holeIdx];
   const N = CONFIG.players.length;
@@ -1985,7 +2002,7 @@ function updateAll() {
   // 배판 배지가 변경될 수 있는 홀들의 배지 갱신 (다음 홀)
   // updateHole은 이미 현재 홀을 갱신하므로, 연쇄 배판 홀 배지만 별도 갱신
   for (let h = 0; h < HOLES; h++) {
-    const baebanCount = getBaebanCount(h) + getSameScoreNPlusCount(h) + getOverparBaebanCount(h);
+    const baebanCount = getFullBaebanCount(h);
     const maxMult = (CONFIG.rules.baeban && CONFIG.rules.baeban.maxMult) || 3;
     const baebanMult = baebanCount > 0 ? Math.min(1 + baebanCount, maxMult) : 1;
     const badgesEl = document.getElementById(`badges-${h}`);
@@ -2029,8 +2046,8 @@ function updateHole(h) {
     else                     wrap.className = 'sp-wrap';
   }
 
-  // 배판 여부 계산
-  const baebanCount = getBaebanCount(h) + getSameScoreNPlusCount(h) + getOverparBaebanCount(h);
+  // 배판 여부 계산 (버디/이글/알바/홀인원 '전체 배판' 모드 기여분 포함)
+  const baebanCount = getFullBaebanCount(h);
   const maxMult     = (CONFIG.rules.baeban && CONFIG.rules.baeban.maxMult) || 3;
   const baebanMult  = baebanCount > 0 ? Math.min(1 + baebanCount, maxMult) : 1;
 
