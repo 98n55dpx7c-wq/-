@@ -1042,12 +1042,18 @@
         <span class="threshold-label">보너스 방식</span>
         <div class="pill-group" id="birdieModeButtons">
           <button class="pill-btn active" onclick="onBirdieMode('baeban')">전체 배판<br><small>버디 시 해당 홀 전체 배판</small></button>
-          <button class="pill-btn" onclick="onBirdieMode('multiplier')">버디한 사람만 2배<br><small>버디 플레이어만 2배 적용</small></button>
+          <button class="pill-btn" onclick="onBirdieMode('multiplier')">배수<br><small>버디 플레이어만 N배 적용</small></button>
+          <button class="pill-btn" onclick="onBirdieMode('flat')">정액 추가<br><small>1인당 정액 추가 지급</small></button>
         </div>
         <div id="birdieMultRow" style="display:none; align-items:center; gap:8px; margin-top:8px;">
           <span class="rule-mult-label">배수</span>
           <input class="rule-mult-input" id="birdieMultiplier" type="number" min="1" max="20" value="2">
           <span class="rule-mult-label">배</span>
+        </div>
+        <div id="birdieFlatRow" style="display:none; align-items:center; gap:8px; margin-top:8px;">
+          <span class="rule-mult-label">1인당</span>
+          <input class="rule-mult-input" id="birdieFlatAmount" type="number" min="100" step="100" value="1000">
+          <span class="rule-mult-label">원</span>
         </div>
       </div>
 
@@ -1062,8 +1068,9 @@
       <div id="eagleModeWrap" class="threshold-row" style="opacity:0.4;pointer-events:none">
         <span class="threshold-label">보너스 방식</span>
         <div class="pill-group" id="eagleModeButtons">
-          <button class="pill-btn active" onclick="onBonusMode('eagle','multiplier')">배수 방식<br><small>타수×배수 지급</small></button>
-          <button class="pill-btn" onclick="onBonusMode('eagle','flat')">정액 방식<br><small>1인당 정액 지급</small></button>
+          <button class="pill-btn" onclick="onBonusMode('eagle','baeban')">전체 배판<br><small>이글 시 해당 홀 전체 배판</small></button>
+          <button class="pill-btn active" onclick="onBonusMode('eagle','multiplier')">배수<br><small>이글 플레이어만 N배 적용</small></button>
+          <button class="pill-btn" onclick="onBonusMode('eagle','flat')">정액 추가<br><small>1인당 정액 추가 지급</small></button>
         </div>
         <div id="eagleMultRow" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
           <span class="rule-mult-label">배수</span>
@@ -1088,8 +1095,9 @@
       <div id="albatrossModeWrap" class="threshold-row" style="opacity:0.4;pointer-events:none">
         <span class="threshold-label">보너스 방식</span>
         <div class="pill-group" id="albatrossModeButtons">
-          <button class="pill-btn active" onclick="onBonusMode('albatross','multiplier')">배수 방식<br><small>타수×배수 지급</small></button>
-          <button class="pill-btn" onclick="onBonusMode('albatross','flat')">정액 방식<br><small>1인당 정액 지급</small></button>
+          <button class="pill-btn" onclick="onBonusMode('albatross','baeban')">전체 배판<br><small>알바 시 해당 홀 전체 배판</small></button>
+          <button class="pill-btn active" onclick="onBonusMode('albatross','multiplier')">배수<br><small>알바 플레이어만 N배 적용</small></button>
+          <button class="pill-btn" onclick="onBonusMode('albatross','flat')">정액 추가<br><small>1인당 정액 추가 지급</small></button>
         </div>
         <div id="albatrossMultRow" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
           <span class="rule-mult-label">배수</span>
@@ -1114,8 +1122,9 @@
       <div id="holeinoneModeWrap" class="threshold-row" style="opacity:0.4;pointer-events:none">
         <span class="threshold-label">보너스 방식</span>
         <div class="pill-group" id="holeinoneModeButtons">
-          <button class="pill-btn active" onclick="onBonusMode('holeinone','multiplier')">배수 방식<br><small>타수×배수 지급</small></button>
-          <button class="pill-btn" onclick="onBonusMode('holeinone','flat')">정액 방식<br><small>1인당 정액 지급</small></button>
+          <button class="pill-btn" onclick="onBonusMode('holeinone','baeban')">전체 배판<br><small>홀인원 시 해당 홀 전체 배판</small></button>
+          <button class="pill-btn active" onclick="onBonusMode('holeinone','multiplier')">배수<br><small>홀인원 플레이어만 N배 적용</small></button>
+          <button class="pill-btn" onclick="onBonusMode('holeinone','flat')">정액 추가<br><small>1인당 정액 추가 지급</small></button>
         </div>
         <div id="holeinoneMultRow" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
           <span class="rule-mult-label">배수</span>
@@ -1301,7 +1310,7 @@ let CONFIG = {
   players: ['플레이어1', '플레이어2', '플레이어3', '플레이어4'],
   unit: 1000,
   rules: {
-    birdie:    { enabled: false, mult: 2, mode: 'baeban' },
+    birdie:    { enabled: false, mult: 2, mode: 'baeban', flatAmount: 1000 },
     eagle:     { enabled: false, mult: 3, mode: 'multiplier', flatAmount: 5000 },
     albatross: { enabled: false, mult: 5, mode: 'multiplier', flatAmount: 10000 },
     holeinone: { enabled: false, mult: 5, mode: 'multiplier', flatAmount: 5000 },
@@ -1404,9 +1413,12 @@ function renderSetupForm() {
   // Birdie (mode 포함)
   const birdieRule = CONFIG.rules.birdie;
   document.getElementById('birdieOn').checked = birdieRule.enabled;
-  setupBirdieMode = birdieRule.mode || 'multiplier';
+  setupBirdieMode = birdieRule.mode || 'baeban';
   onBirdieMode(setupBirdieMode);
   document.getElementById('birdieMultiplier').value = birdieRule.mult;
+  if (document.getElementById('birdieFlatAmount')) {
+    document.getElementById('birdieFlatAmount').value = birdieRule.flatAmount || 1000;
+  }
   document.getElementById('birdieModeWrap').style.opacity = birdieRule.enabled ? '1' : '0.4';
   document.getElementById('birdieModeWrap').style.pointerEvents = birdieRule.enabled ? '' : 'none';
 
@@ -1493,21 +1505,24 @@ let setupHoleinoneMode = 'multiplier';
 
 function onBirdieMode(val) {
   setupBirdieMode = val;
+  const modes = ['baeban', 'multiplier', 'flat'];
   document.querySelectorAll('#birdieModeButtons .pill-btn').forEach((btn, i) => {
-    btn.classList.toggle('active', i === (val === 'baeban' ? 0 : 1));
+    btn.classList.toggle('active', modes[i] === val);
   });
   document.getElementById('birdieMultRow').style.display = val === 'multiplier' ? 'flex' : 'none';
+  document.getElementById('birdieFlatRow').style.display = val === 'flat' ? 'flex' : 'none';
 }
 
 function onBonusMode(rule, val) {
   if (rule === 'eagle')     setupEagleMode     = val;
   if (rule === 'albatross') setupAlbatrossMode = val;
   if (rule === 'holeinone') setupHoleinoneMode = val;
+  const modes = ['baeban', 'multiplier', 'flat'];
   document.querySelectorAll(`#${rule}ModeButtons .pill-btn`).forEach((btn, i) => {
-    btn.classList.toggle('active', i === (val === 'multiplier' ? 0 : 1));
+    btn.classList.toggle('active', modes[i] === val);
   });
   document.getElementById(rule + 'MultRow').style.display = val === 'multiplier' ? 'flex' : 'none';
-  document.getElementById(rule + 'FlatRow').style.display = val !== 'multiplier' ? 'flex' : 'none';
+  document.getElementById(rule + 'FlatRow').style.display = val === 'flat' ? 'flex' : 'none';
 }
 
 
@@ -1545,10 +1560,12 @@ function startGame() {
   });
   // 버디 (mode 포함)
   const birdieMult = parseInt(document.getElementById('birdieMultiplier').value) || 2;
+  const birdieFlatAmount = parseInt(document.getElementById('birdieFlatAmount').value) || 1000;
   rules.birdie = {
     enabled: document.getElementById('birdieOn').checked,
     mult: Math.max(1, birdieMult),
     mode: setupBirdieMode,
+    flatAmount: Math.max(100, birdieFlatAmount),
   };
 
   // 양파 (파×2 고정, 배수 2배 고정)
@@ -1822,8 +1839,14 @@ function calcHoleDelta(holeIdx) {
   const overparCount   = getOverparBaebanCount(holeIdx);   // 해당 홀 파 초과 배판
   const maxMult        = (CONFIG.rules.baeban && CONFIG.rules.baeban.maxMult) || 3;
   const birdieMode     = CONFIG.rules.birdie.mode    || 'baeban';
-  const birdieBaebanCount = (CONFIG.rules.birdie.enabled && birdieMode === 'baeban' && isBirdie.some(Boolean)) ? 1 : 0;
-  const totalBaeban       = baebanCount + nplusCount + overparCount + birdieBaebanCount;
+  const eagleMode      = CONFIG.rules.eagle.mode     || 'multiplier';
+  const albatrossMode  = CONFIG.rules.albatross.mode || 'multiplier';
+  const holeinoneMode  = CONFIG.rules.holeinone.mode || 'multiplier';
+  const birdieBaebanCount    = (CONFIG.rules.birdie.enabled    && birdieMode    === 'baeban' && isBirdie.some(Boolean))    ? 1 : 0;
+  const eagleBaebanCount     = (CONFIG.rules.eagle.enabled     && eagleMode     === 'baeban' && isEagle.some(Boolean))     ? 1 : 0;
+  const albatrossBaebanCount = (CONFIG.rules.albatross.enabled && albatrossMode === 'baeban' && isAlbatross.some(Boolean)) ? 1 : 0;
+  const holeinoneBaebanCount = (CONFIG.rules.holeinone.enabled && holeinoneMode === 'baeban' && isHoleinone.some(Boolean)) ? 1 : 0;
+  const totalBaeban       = baebanCount + nplusCount + overparCount + birdieBaebanCount + eagleBaebanCount + albatrossBaebanCount + holeinoneBaebanCount;
   const isBaeban       = totalBaeban > 0;
   const baebanBase     = isBaeban ? Math.min(1 + totalBaeban, maxMult) : 1;
 
@@ -1837,9 +1860,6 @@ function calcHoleDelta(holeIdx) {
       const strokes = Math.abs(diff);
 
       let mult;
-      const eagleMode     = CONFIG.rules.eagle.mode     || 'multiplier';
-      const albatrossMode = CONFIG.rules.albatross.mode || 'multiplier';
-      const holeinoneMode = CONFIG.rules.holeinone.mode || 'multiplier';
 
       if (isBaeban) {
         // ── 배판 모드: 배판 기본 배수에 보너스 덧셈 (배수 방식인 룰만 적용), 최대 maxMult ──
@@ -1878,10 +1898,23 @@ function calcHoleDelta(holeIdx) {
     }
   }
 
-  // ── 정액 보너스 (배판 배수 적용) ──
+  // ── 정액 추가 보너스 (배판 배수 적용) ──
+
+  // 버디 정액: 버디 플레이어가 비버디 플레이어 각각에게 정액 수령 (배판 배수 적용)
+  if (CONFIG.rules.birdie.enabled && birdieMode === 'flat') {
+    const amt = (CONFIG.rules.birdie.flatAmount || 1000) * baebanBase;
+    for (let i = 0; i < N; i++) {
+      if (!isBirdie[i]) continue;
+      for (let j = 0; j < N; j++) {
+        if (i === j || isBirdie[j]) continue;
+        delta[i] += amt;
+        delta[j] -= amt;
+      }
+    }
+  }
 
   // 이글 정액: 이글 플레이어가 비이글 플레이어 각각에게 정액 수령 (배판 배수 적용)
-  if (CONFIG.rules.eagle.enabled && (CONFIG.rules.eagle.mode || 'multiplier') !== 'multiplier') {
+  if (CONFIG.rules.eagle.enabled && eagleMode === 'flat') {
     const amt = (CONFIG.rules.eagle.flatAmount || 5000) * baebanBase;
     for (let i = 0; i < N; i++) {
       if (!isEagle[i]) continue;
@@ -1894,7 +1927,7 @@ function calcHoleDelta(holeIdx) {
   }
 
   // 알바트로스 정액: 알바트로스 플레이어가 비알바트로스 플레이어 각각에게 정액 수령 (배판 배수 적용)
-  if (CONFIG.rules.albatross.enabled && (CONFIG.rules.albatross.mode || 'multiplier') !== 'multiplier') {
+  if (CONFIG.rules.albatross.enabled && albatrossMode === 'flat') {
     const amt = (CONFIG.rules.albatross.flatAmount || 10000) * baebanBase;
     for (let i = 0; i < N; i++) {
       if (!isAlbatross[i]) continue;
@@ -1907,7 +1940,7 @@ function calcHoleDelta(holeIdx) {
   }
 
   // 홀인원 정액: 홀인원 플레이어가 비홀인원 플레이어 각각에게 정액 수령 (배판 배수 적용)
-  if (CONFIG.rules.holeinone.enabled && (CONFIG.rules.holeinone.mode || 'multiplier') !== 'multiplier') {
+  if (CONFIG.rules.holeinone.enabled && holeinoneMode === 'flat') {
     const amt = (CONFIG.rules.holeinone.flatAmount || 5000) * baebanBase;
     for (let i = 0; i < N; i++) {
       if (!isHoleinone[i]) continue;
@@ -2175,7 +2208,14 @@ function loadConfig() {
       baeban:    { enabled: false, maxMult: 3, overpar: false, nplus: { enabled: false, count: 2 } },
     };
     Object.entries(defaults).forEach(([k, v]) => { if (!cfg.rules[k]) cfg.rules[k] = v; });
-    if (!cfg.rules.birdie.mode || !['baeban','multiplier'].includes(cfg.rules.birdie.mode)) cfg.rules.birdie.mode = 'baeban';
+    const validModes = ['baeban', 'multiplier', 'flat'];
+    if (!validModes.includes(cfg.rules.birdie.mode)) cfg.rules.birdie.mode = 'baeban';
+    if (!cfg.rules.birdie.flatAmount) cfg.rules.birdie.flatAmount = 1000;
+    ['eagle', 'albatross', 'holeinone'].forEach(r => {
+      if (!cfg.rules[r]) return;
+      if (!validModes.includes(cfg.rules[r].mode)) cfg.rules[r].mode = 'multiplier';
+      if (!cfg.rules[r].flatAmount) cfg.rules[r].flatAmount = r === 'albatross' ? 10000 : 5000;
+    });
     return cfg;
   } catch(e) { return null; }
 }
