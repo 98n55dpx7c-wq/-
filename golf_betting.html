@@ -1685,15 +1685,25 @@ function initSp(id, vals, onChange) {
   const scroll = wrap.querySelector('.sp-scroll');
   const items  = Array.from(scroll.querySelectorAll('.sp-item'));
 
+  function getItemVal(el) {
+    return el.dataset.v === '' ? null : parseInt(el.dataset.v);
+  }
+
   function highlight(val) {
-    items.forEach(el => {
-      const v = el.dataset.v === '' ? null : parseInt(el.dataset.v);
-      el.classList.toggle('sp-sel', v === val);
-    });
+    items.forEach(el => el.classList.toggle('sp-sel', getItemVal(el) === val));
+  }
+
+  function selectIdx(idx, callOnChange) {
+    idx = Math.max(0, Math.min(idx, vals.length - 1));
+    const val = vals[idx];
+    scroll.scrollTo({ top: idx * SP_ITEM_H, behavior: 'smooth' });
+    highlight(val);
+    if (callOnChange && val !== lastVal) { lastVal = val; onChange(val); }
   }
 
   // Restore scroll position to currently-selected item
   const selIdx = items.findIndex(el => el.classList.contains('sp-sel'));
+  let lastVal = vals[Math.max(0, selIdx)];
   if (selIdx >= 0) scroll.scrollTop = selIdx * SP_ITEM_H;
 
   wrap._spSet = (val) => {
@@ -1701,19 +1711,23 @@ function initSp(id, vals, onChange) {
     if (idx < 0) return;
     scroll.scrollTo({ top: idx * SP_ITEM_H, behavior: 'smooth' });
     highlight(val);
+    lastVal = val;
   };
 
-  let timer, lastVal = vals[Math.max(0, selIdx)];
+  // 스크롤 이벤트
+  let timer;
   scroll.addEventListener('scroll', () => {
     clearTimeout(timer);
     timer = setTimeout(() => {
-      const idx = Math.max(0, Math.min(Math.round(scroll.scrollTop / SP_ITEM_H), vals.length - 1));
-      const val = vals[idx];
-      scroll.scrollTo({ top: idx * SP_ITEM_H, behavior: 'smooth' });
-      highlight(val);
-      if (val !== lastVal) { lastVal = val; onChange(val); }
+      const idx = Math.round(scroll.scrollTop / SP_ITEM_H);
+      selectIdx(idx, true);
     }, 80);
   }, { passive: true });
+
+  // 아이템 탭/클릭으로 선택 (모바일 대응)
+  items.forEach((el, i) => {
+    el.addEventListener('click', () => selectIdx(i, true));
+  });
 }
 
 function initAllScrollPickers() {
@@ -1749,6 +1763,17 @@ function toggleHole(h) {
   const open = body.style.display !== 'none';
   body.style.display = open ? 'none' : 'block';
   tog.classList.toggle('open', !open);
+  if (!open) {
+    // 홀을 펼칠 때 픽커 스크롤 위치 복원 (display:none 상태에서 scrollTop 미적용 보정)
+    requestAnimationFrame(() => {
+      const parSp = document.getElementById(`sp-par-${h}`);
+      if (parSp?._spSet) parSp._spSet(gameData[h].par);
+      for (let pi = 0; pi < CONFIG.players.length; pi++) {
+        const sp = document.getElementById(`sp-score-${h}-${pi}`);
+        if (sp?._spSet) sp._spSet(gameData[h].scores[pi]);
+      }
+    });
+  }
 }
 
 function setPar(h, val) {
