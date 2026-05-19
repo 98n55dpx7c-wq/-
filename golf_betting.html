@@ -1507,7 +1507,7 @@ function onBonusMode(rule, val) {
     btn.classList.toggle('active', i === (val === 'multiplier' ? 0 : 1));
   });
   document.getElementById(rule + 'MultRow').style.display = val === 'multiplier' ? 'flex' : 'none';
-  document.getElementById(rule + 'FlatRow').style.display = val === 'flat'       ? 'flex' : 'none';
+  document.getElementById(rule + 'FlatRow').style.display = val !== 'multiplier' ? 'flex' : 'none';
 }
 
 
@@ -1881,7 +1881,7 @@ function calcHoleDelta(holeIdx) {
   // ── 정액 보너스 (배판 배수 적용) ──
 
   // 이글 정액: 이글 플레이어가 비이글 플레이어 각각에게 정액 수령 (배판 배수 적용)
-  if (CONFIG.rules.eagle.enabled && (CONFIG.rules.eagle.mode || 'multiplier') === 'flat') {
+  if (CONFIG.rules.eagle.enabled && (CONFIG.rules.eagle.mode || 'multiplier') !== 'multiplier') {
     const amt = (CONFIG.rules.eagle.flatAmount || 5000) * baebanBase;
     for (let i = 0; i < N; i++) {
       if (!isEagle[i]) continue;
@@ -1894,7 +1894,7 @@ function calcHoleDelta(holeIdx) {
   }
 
   // 알바트로스 정액: 알바트로스 플레이어가 비알바트로스 플레이어 각각에게 정액 수령 (배판 배수 적용)
-  if (CONFIG.rules.albatross.enabled && (CONFIG.rules.albatross.mode || 'multiplier') === 'flat') {
+  if (CONFIG.rules.albatross.enabled && (CONFIG.rules.albatross.mode || 'multiplier') !== 'multiplier') {
     const amt = (CONFIG.rules.albatross.flatAmount || 10000) * baebanBase;
     for (let i = 0; i < N; i++) {
       if (!isAlbatross[i]) continue;
@@ -1907,7 +1907,7 @@ function calcHoleDelta(holeIdx) {
   }
 
   // 홀인원 정액: 홀인원 플레이어가 비홀인원 플레이어 각각에게 정액 수령 (배판 배수 적용)
-  if (CONFIG.rules.holeinone.enabled && (CONFIG.rules.holeinone.mode || 'multiplier') === 'flat') {
+  if (CONFIG.rules.holeinone.enabled && (CONFIG.rules.holeinone.mode || 'multiplier') !== 'multiplier') {
     const amt = (CONFIG.rules.holeinone.flatAmount || 5000) * baebanBase;
     for (let i = 0; i < N; i++) {
       if (!isHoleinone[i]) continue;
@@ -2175,7 +2175,7 @@ function loadConfig() {
       baeban:    { enabled: false, maxMult: 3, overpar: false, nplus: { enabled: false, count: 2 } },
     };
     Object.entries(defaults).forEach(([k, v]) => { if (!cfg.rules[k]) cfg.rules[k] = v; });
-    if (!cfg.rules.birdie.mode || cfg.rules.birdie.mode === 'flat') cfg.rules.birdie.mode = 'baeban';
+    if (!cfg.rules.birdie.mode || !['baeban','multiplier'].includes(cfg.rules.birdie.mode)) cfg.rules.birdie.mode = 'baeban';
     return cfg;
   } catch(e) { return null; }
 }
