@@ -922,32 +922,6 @@
   .sc-cell-triple    { background: #3a0a00; color: #ff4040; font-weight: 800; }
   .sc-cell-empty     { color: #2a4060; }
 
-  /* ── Score Number Input ── */
-  .score-input {
-    width: 100%;
-    height: 52px;
-    background: #0a1520;
-    border: 1.5px solid #1a3050;
-    border-radius: 8px;
-    color: #e0f0ff;
-    font-size: 22px;
-    font-weight: 700;
-    text-align: center;
-    outline: none;
-    box-sizing: border-box;
-    -moz-appearance: textfield;
-    transition: border-color 0.2s, background 0.2s;
-  }
-  .score-input::-webkit-outer-spin-button,
-  .score-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  .score-input::placeholder { color: #2a5070; font-size: 18px; }
-  .score-input:focus { border-color: #3a80c0; background: #0d1f30; }
-  .score-input.sp-birdie    { border-color: #4ec97a; background: #071a0f; }
-  .score-input.sp-eagle     { border-color: #4ec9c9; background: #071a1a; }
-  .score-input.sp-albatross { border-color: #a0e8ff; background: #071820; }
-  .score-input.sp-holeinone { border-color: #d0a0ff; background: #120820; }
-  .score-input.sp-yangpa    { border-color: #ff6b6b; background: #200808; }
-  .par-input { height: 52px; font-size: 20px; }
 </style>
 </head>
 <body>
@@ -1607,12 +1581,16 @@ function buildHoles() {
         <div class="input-row" style="grid-template-columns: 60px repeat(${N}, 1fr)">
           <div class="input-col">
             <div class="input-label">파</div>
-            <input type="number" id="par-${h}" class="score-input par-input" min="3" max="5" value="${d.par}" onchange="setPar(${h}, this.value)">
+            <input class="score-input par" id="par-${h}" type="number" min="3" max="5"
+              value="${d.par}" oninput="setPar(${h},this.value)" style="font-size:16px;">
           </div>
           ${CONFIG.players.map((name, i) => `
             <div class="input-col">
               <div class="input-label">${escapeHtml(name)}</div>
-              <input type="number" id="score-${h}-${i}" class="score-input" min="1" max="20" value="${d.scores[i] ?? ''}" placeholder="−" onchange="setScore(${h}, ${i}, this.value)">
+              <input class="score-input" id="score-${h}-${i}" type="number" min="1" max="20"
+                value="${d.scores[i] !== null ? d.scores[i] : ''}"
+                placeholder="-"
+                oninput="setScore(${h},${i},this.value)">
             </div>
           `).join('')}
         </div>
@@ -1918,11 +1896,12 @@ function updateHole(h) {
     const inp = document.getElementById(`score-${h}-${i}`);
     if (!inp) continue;
     if (scores[i] === null) { inp.className = 'score-input'; continue; }
-    if (isHoleinone[i])      inp.className = 'score-input sp-holeinone';
-    else if (isAlbatross[i]) inp.className = 'score-input sp-albatross';
-    else if (isEagle[i])     inp.className = 'score-input sp-eagle';
-    else if (isBirdie[i])    inp.className = 'score-input sp-birdie';
-    else if (isYangpa[i])    inp.className = 'score-input sp-yangpa';
+    if (isHoleinone[i])      inp.className = 'score-input holeinone';
+    else if (isAlbatross[i]) inp.className = 'score-input albatross';
+    else if (isEagle[i])     inp.className = 'score-input eagle';
+    else if (isBirdie[i])    inp.className = 'score-input birdie';
+    else if (isYangpa[i])    inp.className = 'score-input yangpa';
+    else if (scores[i] === par) inp.className = 'score-input par';
     else                     inp.className = 'score-input';
   }
 
