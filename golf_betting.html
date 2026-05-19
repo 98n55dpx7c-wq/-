@@ -1838,14 +1838,14 @@ function calcHoleDelta(holeIdx) {
   const nplusCount     = getSameScoreNPlusCount(holeIdx);  // 해당 홀 N명 이상 동점 배판
   const overparCount   = getOverparBaebanCount(holeIdx);   // 해당 홀 파 초과 배판
   const maxMult        = (CONFIG.rules.baeban && CONFIG.rules.baeban.maxMult) || 3;
-  const birdieMode     = CONFIG.rules.birdie.mode    || 'baeban';
-  const eagleMode      = CONFIG.rules.eagle.mode     || 'multiplier';
-  const albatrossMode  = CONFIG.rules.albatross.mode || 'multiplier';
-  const holeinoneMode  = CONFIG.rules.holeinone.mode || 'multiplier';
-  const birdieBaebanCount    = (CONFIG.rules.birdie.enabled    && birdieMode    === 'baeban' && isBirdie.some(Boolean))    ? 1 : 0;
-  const eagleBaebanCount     = (CONFIG.rules.eagle.enabled     && eagleMode     === 'baeban' && isEagle.some(Boolean))     ? 1 : 0;
-  const albatrossBaebanCount = (CONFIG.rules.albatross.enabled && albatrossMode === 'baeban' && isAlbatross.some(Boolean)) ? 1 : 0;
-  const holeinoneBaebanCount = (CONFIG.rules.holeinone.enabled && holeinoneMode === 'baeban' && isHoleinone.some(Boolean)) ? 1 : 0;
+  const birdieMode     = CONFIG.rules.birdie?.mode    || 'baeban';
+  const eagleMode      = CONFIG.rules.eagle?.mode     || 'multiplier';
+  const albatrossMode  = CONFIG.rules.albatross?.mode || 'multiplier';
+  const holeinoneMode  = CONFIG.rules.holeinone?.mode || 'multiplier';
+  const birdieBaebanCount    = (CONFIG.rules.birdie?.enabled    && birdieMode    === 'baeban' && isBirdie.some(Boolean))    ? 1 : 0;
+  const eagleBaebanCount     = (CONFIG.rules.eagle?.enabled     && eagleMode     === 'baeban' && isEagle.some(Boolean))     ? 1 : 0;
+  const albatrossBaebanCount = (CONFIG.rules.albatross?.enabled && albatrossMode === 'baeban' && isAlbatross.some(Boolean)) ? 1 : 0;
+  const holeinoneBaebanCount = (CONFIG.rules.holeinone?.enabled && holeinoneMode === 'baeban' && isHoleinone.some(Boolean)) ? 1 : 0;
   const totalBaeban       = baebanCount + nplusCount + overparCount + birdieBaebanCount + eagleBaebanCount + albatrossBaebanCount + holeinoneBaebanCount;
   const isBaeban       = totalBaeban > 0;
   const baebanBase     = isBaeban ? Math.min(1 + totalBaeban, maxMult) : 1;
@@ -2018,16 +2018,15 @@ function updateHole(h) {
   const isYangpa    = scores.map((s) => s !== null && s >= yangpaThreshold(par));
 
   for (let i = 0; i < N; i++) {
-    const inp = document.getElementById(`score-${h}-${i}`);
-    if (!inp) continue;
-    if (scores[i] === null) { inp.className = 'score-input'; continue; }
-    if (isHoleinone[i])      inp.className = 'score-input holeinone';
-    else if (isAlbatross[i]) inp.className = 'score-input albatross';
-    else if (isEagle[i])     inp.className = 'score-input eagle';
-    else if (isBirdie[i])    inp.className = 'score-input birdie';
-    else if (isYangpa[i])    inp.className = 'score-input yangpa';
-    else if (scores[i] === par) inp.className = 'score-input par';
-    else inp.className = 'score-input';
+    const wrap = document.getElementById(`sp-score-${h}-${i}`);
+    if (!wrap) continue;
+    if (scores[i] === null) { wrap.className = 'sp-wrap'; continue; }
+    if (isHoleinone[i])      wrap.className = 'sp-wrap sp-holeinone';
+    else if (isAlbatross[i]) wrap.className = 'sp-wrap sp-albatross';
+    else if (isEagle[i])     wrap.className = 'sp-wrap sp-eagle';
+    else if (isBirdie[i])    wrap.className = 'sp-wrap sp-birdie';
+    else if (isYangpa[i])    wrap.className = 'sp-wrap sp-yangpa';
+    else                     wrap.className = 'sp-wrap';
   }
 
   // 배판 여부 계산
@@ -2203,18 +2202,19 @@ function loadConfig() {
     if (!cfg.rules) return null;
     // Backfill new rule fields for configs saved before this version
     const defaults = {
-      albatross: { enabled: false, mult: 5 },
-      holeinone: { enabled: false, mult: 5 },
+      birdie:    { enabled: false, mult: 2, mode: 'baeban', flatAmount: 1000 },
+      eagle:     { enabled: false, mult: 3, mode: 'multiplier', flatAmount: 5000 },
+      albatross: { enabled: false, mult: 5, mode: 'multiplier', flatAmount: 10000 },
+      holeinone: { enabled: false, mult: 5, mode: 'multiplier', flatAmount: 5000 },
+      yangpa:    { enabled: false, mult: 2 },
       baeban:    { enabled: false, maxMult: 3, overpar: false, nplus: { enabled: false, count: 2 } },
     };
     Object.entries(defaults).forEach(([k, v]) => { if (!cfg.rules[k]) cfg.rules[k] = v; });
     const validModes = ['baeban', 'multiplier', 'flat'];
-    if (!validModes.includes(cfg.rules.birdie.mode)) cfg.rules.birdie.mode = 'baeban';
-    if (!cfg.rules.birdie.flatAmount) cfg.rules.birdie.flatAmount = 1000;
-    ['eagle', 'albatross', 'holeinone'].forEach(r => {
+    ['birdie', 'eagle', 'albatross', 'holeinone'].forEach(r => {
       if (!cfg.rules[r]) return;
-      if (!validModes.includes(cfg.rules[r].mode)) cfg.rules[r].mode = 'multiplier';
-      if (!cfg.rules[r].flatAmount) cfg.rules[r].flatAmount = r === 'albatross' ? 10000 : 5000;
+      if (!validModes.includes(cfg.rules[r].mode)) cfg.rules[r].mode = (r === 'birdie' ? 'baeban' : 'multiplier');
+      if (!cfg.rules[r].flatAmount) cfg.rules[r].flatAmount = (r === 'albatross' ? 10000 : r === 'birdie' ? 1000 : 5000);
     });
     return cfg;
   } catch(e) { return null; }
