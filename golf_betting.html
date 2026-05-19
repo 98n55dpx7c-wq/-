@@ -1829,9 +1829,9 @@ function calcHoleDelta(holeIdx) {
   if (scores.some(s => s === null)) return delta;
 
   const isHoleinone = scores.map(s => s === 1);
-  const isAlbatross = scores.map(s => s <= par - 3);
-  const isEagle     = scores.map(s => s <= par - 2);
-  const isBirdie    = scores.map(s => s <= par - 1);
+  const isAlbatross = scores.map((s, i) => !isHoleinone[i] && s <= par - 3);
+  const isEagle     = scores.map((s, i) => !isHoleinone[i] && !isAlbatross[i] && s <= par - 2);
+  const isBirdie    = scores.map((s, i) => !isHoleinone[i] && !isAlbatross[i] && !isEagle[i] && s <= par - 1);
   const isYangpa    = scores.map(s => s >= yangpaThreshold(par));
 
   const baebanCount    = getBaebanCount(holeIdx);          // 이전 홀 이월 배판 (전원 동점)
@@ -2012,10 +2012,10 @@ function updateHole(h) {
   const { par, scores } = gameData[h];
   const delta = calcHoleDelta(h);
   const isHoleinone = scores.map(s => s !== null && s === 1);
-  const isAlbatross = scores.map(s => s !== null && s <= par - 3);
-  const isEagle     = scores.map(s => s !== null && s <= par - 2);
-  const isBirdie    = scores.map(s => s !== null && s <= par - 1);
-  const isYangpa    = scores.map(s => s !== null && s >= yangpaThreshold(par));
+  const isAlbatross = scores.map((s, i) => s !== null && !isHoleinone[i] && s <= par - 3);
+  const isEagle     = scores.map((s, i) => s !== null && !isHoleinone[i] && !isAlbatross[i] && s <= par - 2);
+  const isBirdie    = scores.map((s, i) => s !== null && !isHoleinone[i] && !isAlbatross[i] && !isEagle[i] && s <= par - 1);
+  const isYangpa    = scores.map((s) => s !== null && s >= yangpaThreshold(par));
 
   for (let i = 0; i < N; i++) {
     const inp = document.getElementById(`score-${h}-${i}`);
