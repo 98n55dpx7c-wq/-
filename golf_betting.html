@@ -922,70 +922,32 @@
   .sc-cell-triple    { background: #3a0a00; color: #ff4040; font-weight: 800; }
   .sc-cell-empty     { color: #2a4060; }
 
-  /* ── Scroll Picker ── */
-  .sp-wrap {
-    position: relative;
-    height: 96px;
-    overflow: hidden;
-    border-radius: 8px;
+  /* ── Score Number Input ── */
+  .score-input {
+    width: 100%;
+    height: 52px;
     background: #0a1520;
     border: 1.5px solid #1a3050;
-    transition: border-color 0.2s;
-  }
-  .sp-wrap.sp-birdie    { border-color: #4ec97a; }
-  .sp-wrap.sp-eagle     { border-color: #4ec9c9; }
-  .sp-wrap.sp-albatross { border-color: #a0e8ff; }
-  .sp-wrap.sp-holeinone { border-color: #d0a0ff; }
-  .sp-wrap.sp-yangpa    { border-color: #ff6b6b; }
-  .sp-wrap::before, .sp-wrap::after {
-    content: '';
-    position: absolute;
-    left: 0; right: 0;
-    height: 30px;
-    z-index: 2;
-    pointer-events: none;
-  }
-  .sp-wrap::before { top: 0;    background: linear-gradient(to bottom, #0a1520 20%, transparent); }
-  .sp-wrap::after  { bottom: 0; background: linear-gradient(to top,   #0a1520 20%, transparent); }
-  .sp-sel-line {
-    position: absolute;
-    top: 50%; left: 4px; right: 4px;
-    height: 32px;
-    transform: translateY(-50%);
-    border-top: 1px solid #2a5080;
-    border-bottom: 1px solid #2a5080;
-    pointer-events: none;
-    z-index: 1;
-  }
-  .sp-scroll {
-    position: absolute;
-    inset: 0;
-    overflow-y: scroll;
-    scroll-snap-type: y mandatory;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  .sp-scroll::-webkit-scrollbar { display: none; }
-  .sp-item {
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    scroll-snap-align: center;
-    font-size: 13px;
-    font-weight: 500;
-    color: #2a5070;
-    user-select: none;
-    cursor: pointer;
-  }
-  .sp-item.sp-sel {
+    border-radius: 8px;
     color: #e0f0ff;
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 700;
+    text-align: center;
+    outline: none;
+    box-sizing: border-box;
+    -moz-appearance: textfield;
+    transition: border-color 0.2s, background 0.2s;
   }
-  .sp-item.sp-empty { color: #1a4060; }
-  .sp-item.sp-empty.sp-sel { color: #3a7090; font-size: 16px; }
-  .sp-pad { height: 32px; scroll-snap-align: none; flex-shrink: 0; }
+  .score-input::-webkit-outer-spin-button,
+  .score-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .score-input::placeholder { color: #2a5070; font-size: 18px; }
+  .score-input:focus { border-color: #3a80c0; background: #0d1f30; }
+  .score-input.sp-birdie    { border-color: #4ec97a; background: #071a0f; }
+  .score-input.sp-eagle     { border-color: #4ec9c9; background: #071a1a; }
+  .score-input.sp-albatross { border-color: #a0e8ff; background: #071820; }
+  .score-input.sp-holeinone { border-color: #d0a0ff; background: #120820; }
+  .score-input.sp-yangpa    { border-color: #ff6b6b; background: #200808; }
+  .par-input { height: 52px; font-size: 20px; }
 </style>
 </head>
 <body>
@@ -1645,12 +1607,12 @@ function buildHoles() {
         <div class="input-row" style="grid-template-columns: 60px repeat(${N}, 1fr)">
           <div class="input-col">
             <div class="input-label">파</div>
-            ${buildSpHTML(`sp-par-${h}`, [3,4,5], d.par)}
+            <input type="number" id="par-${h}" class="score-input par-input" min="3" max="5" value="${d.par}" onchange="setPar(${h}, this.value)">
           </div>
           ${CONFIG.players.map((name, i) => `
             <div class="input-col">
               <div class="input-label">${escapeHtml(name)}</div>
-              ${buildSpHTML(`sp-score-${h}-${i}`, SP_SCORE_VALS, d.scores[i])}
+              <input type="number" id="score-${h}-${i}" class="score-input" min="1" max="20" value="${d.scores[i] ?? ''}" placeholder="−" onchange="setScore(${h}, ${i}, this.value)">
             </div>
           `).join('')}
         </div>
@@ -1659,100 +1621,8 @@ function buildHoles() {
     `;
     container.appendChild(card);
   }
-  requestAnimationFrame(initAllScrollPickers);
 }
 
-// ─────────────────────────────────────────────
-// SCROLL PICKER
-// ─────────────────────────────────────────────
-const SP_SCORE_VALS = [null,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
-const SP_ITEM_H = 32;
-
-function buildSpHTML(id, vals, initVal) {
-  const items = vals.map(v => {
-    const isNull = v === null;
-    const isSel  = v === initVal;
-    const cls = 'sp-item' + (isNull ? ' sp-empty' : '') + (isSel ? ' sp-sel' : '');
-    return `<div class="${cls}" data-v="${isNull ? '' : v}">${isNull ? '−' : v}</div>`;
-  }).join('');
-  return `<div class="sp-wrap" id="${id}"><div class="sp-sel-line"></div><div class="sp-scroll"><div class="sp-pad"></div>${items}<div class="sp-pad"></div></div></div>`;
-}
-
-function initSp(id, vals, onChange) {
-  const wrap = document.getElementById(id);
-  if (!wrap || wrap._spInited) return;
-  wrap._spInited = true;
-  const scroll = wrap.querySelector('.sp-scroll');
-  const items  = Array.from(scroll.querySelectorAll('.sp-item'));
-
-  function getItemVal(el) {
-    return el.dataset.v === '' ? null : parseInt(el.dataset.v);
-  }
-
-  function highlight(val) {
-    items.forEach(el => el.classList.toggle('sp-sel', getItemVal(el) === val));
-  }
-
-  function selectIdx(idx, callOnChange) {
-    idx = Math.max(0, Math.min(idx, vals.length - 1));
-    const val = vals[idx];
-    scroll.scrollTo({ top: idx * SP_ITEM_H, behavior: 'smooth' });
-    highlight(val);
-    if (callOnChange && val !== lastVal) { lastVal = val; onChange(val); }
-  }
-
-  // Restore scroll position to currently-selected item
-  const selIdx = items.findIndex(el => el.classList.contains('sp-sel'));
-  let lastVal = vals[Math.max(0, selIdx)];
-  if (selIdx >= 0) scroll.scrollTop = selIdx * SP_ITEM_H;
-
-  wrap._spSet = (val) => {
-    const idx = vals.indexOf(val);
-    if (idx < 0) return;
-    scroll.scrollTo({ top: idx * SP_ITEM_H, behavior: 'smooth' });
-    highlight(val);
-    lastVal = val;
-  };
-
-  // 스크롤 이벤트
-  let timer;
-  scroll.addEventListener('scroll', () => {
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      const idx = Math.round(scroll.scrollTop / SP_ITEM_H);
-      selectIdx(idx, true);
-    }, 80);
-  }, { passive: true });
-
-  // 아이템 탭/클릭으로 선택 (모바일 대응)
-  items.forEach((el, i) => {
-    el.addEventListener('click', () => selectIdx(i, true));
-  });
-}
-
-function initAllScrollPickers() {
-  const parVals = [3, 4, 5];
-  for (let h = 0; h < HOLES; h++) {
-    initSp(`sp-par-${h}`, parVals, val => setParFromPicker(h, val));
-    for (let pi = 0; pi < CONFIG.players.length; pi++) {
-      initSp(`sp-score-${h}-${pi}`, SP_SCORE_VALS, val => setScoreFromPicker(h, pi, val));
-    }
-  }
-}
-
-function setParFromPicker(h, val) {
-  gameData[h].par = val;
-  saveGameData();
-  updateHole(h);
-  updateAll();
-}
-
-function setScoreFromPicker(h, pi, val) {
-  gameData[h].scores[pi] = val;
-  saveGameData();
-  updateHole(h);
-  updateAll();
-}
 
 // ─────────────────────────────────────────────
 // EVENT HANDLERS
@@ -1763,17 +1633,6 @@ function toggleHole(h) {
   const open = body.style.display !== 'none';
   body.style.display = open ? 'none' : 'block';
   tog.classList.toggle('open', !open);
-  if (!open) {
-    // 홀을 펼칠 때 픽커 스크롤 위치 복원 (display:none 상태에서 scrollTop 미적용 보정)
-    requestAnimationFrame(() => {
-      const parSp = document.getElementById(`sp-par-${h}`);
-      if (parSp?._spSet) parSp._spSet(gameData[h].par);
-      for (let pi = 0; pi < CONFIG.players.length; pi++) {
-        const sp = document.getElementById(`sp-score-${h}-${pi}`);
-        if (sp?._spSet) sp._spSet(gameData[h].scores[pi]);
-      }
-    });
-  }
 }
 
 function setPar(h, val) {
@@ -1781,8 +1640,6 @@ function setPar(h, val) {
   if (isNaN(v) || v < 3 || v > 5) return;
   gameData[h].par = v;
   saveGameData();
-  const sp = document.getElementById(`sp-par-${h}`);
-  if (sp?._spSet) sp._spSet(v);
   updateHole(h);
   updateAll();
 }
@@ -1792,8 +1649,6 @@ function setScore(h, playerIdx, val) {
   const score = (v !== null && isNaN(v)) ? null : v;
   gameData[h].scores[playerIdx] = score;
   saveGameData();
-  const sp = document.getElementById(`sp-score-${h}-${playerIdx}`);
-  if (sp?._spSet) sp._spSet(score);
   updateHole(h);
   updateAll();
 }
@@ -2060,15 +1915,15 @@ function updateHole(h) {
   const isYangpa    = scores.map((s) => s !== null && s >= yangpaThreshold(par));
 
   for (let i = 0; i < N; i++) {
-    const wrap = document.getElementById(`sp-score-${h}-${i}`);
-    if (!wrap) continue;
-    if (scores[i] === null) { wrap.className = 'sp-wrap'; continue; }
-    if (isHoleinone[i])      wrap.className = 'sp-wrap sp-holeinone';
-    else if (isAlbatross[i]) wrap.className = 'sp-wrap sp-albatross';
-    else if (isEagle[i])     wrap.className = 'sp-wrap sp-eagle';
-    else if (isBirdie[i])    wrap.className = 'sp-wrap sp-birdie';
-    else if (isYangpa[i])    wrap.className = 'sp-wrap sp-yangpa';
-    else                     wrap.className = 'sp-wrap';
+    const inp = document.getElementById(`score-${h}-${i}`);
+    if (!inp) continue;
+    if (scores[i] === null) { inp.className = 'score-input'; continue; }
+    if (isHoleinone[i])      inp.className = 'score-input sp-holeinone';
+    else if (isAlbatross[i]) inp.className = 'score-input sp-albatross';
+    else if (isEagle[i])     inp.className = 'score-input sp-eagle';
+    else if (isBirdie[i])    inp.className = 'score-input sp-birdie';
+    else if (isYangpa[i])    inp.className = 'score-input sp-yangpa';
+    else                     inp.className = 'score-input';
   }
 
   // 배판 여부 계산 (버디/이글/알바/홀인원 '전체 배판' 모드 기여분 포함)
