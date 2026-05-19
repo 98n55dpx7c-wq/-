@@ -921,6 +921,71 @@
   .sc-cell-double    { background: #3a1a00; color: #ff8040; font-weight: 700; }
   .sc-cell-triple    { background: #3a0a00; color: #ff4040; font-weight: 800; }
   .sc-cell-empty     { color: #2a4060; }
+
+  /* ── Scroll Picker ── */
+  .sp-wrap {
+    position: relative;
+    height: 96px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #0a1520;
+    border: 1.5px solid #1a3050;
+    transition: border-color 0.2s;
+  }
+  .sp-wrap.sp-birdie    { border-color: #4ec97a; }
+  .sp-wrap.sp-eagle     { border-color: #4ec9c9; }
+  .sp-wrap.sp-albatross { border-color: #a0e8ff; }
+  .sp-wrap.sp-holeinone { border-color: #d0a0ff; }
+  .sp-wrap.sp-yangpa    { border-color: #ff6b6b; }
+  .sp-wrap::before, .sp-wrap::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    height: 30px;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .sp-wrap::before { top: 0;    background: linear-gradient(to bottom, #0a1520 20%, transparent); }
+  .sp-wrap::after  { bottom: 0; background: linear-gradient(to top,   #0a1520 20%, transparent); }
+  .sp-sel-line {
+    position: absolute;
+    top: 50%; left: 4px; right: 4px;
+    height: 32px;
+    transform: translateY(-50%);
+    border-top: 1px solid #2a5080;
+    border-bottom: 1px solid #2a5080;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .sp-scroll {
+    position: absolute;
+    inset: 0;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .sp-scroll::-webkit-scrollbar { display: none; }
+  .sp-item {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    scroll-snap-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: #2a5070;
+    user-select: none;
+    cursor: pointer;
+  }
+  .sp-item.sp-sel {
+    color: #e0f0ff;
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .sp-item.sp-empty { color: #1a4060; }
+  .sp-item.sp-empty.sp-sel { color: #3a7090; font-size: 16px; }
+  .sp-pad { height: 32px; scroll-snap-align: none; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -976,10 +1041,10 @@
       <div id="birdieModeWrap" class="threshold-row">
         <span class="threshold-label">보너스 방식</span>
         <div class="pill-group" id="birdieModeButtons">
-          <button class="pill-btn active" onclick="onBirdieMode('multiplier')">배수 방식<br><small>타수×배수 지급</small></button>
-          <button class="pill-btn" onclick="onBirdieMode('flat')">+1타 방식<br><small>버디 시 1타 추가</small></button>
+          <button class="pill-btn active" onclick="onBirdieMode('baeban')">전체 배판<br><small>버디 시 해당 홀 전체 배판</small></button>
+          <button class="pill-btn" onclick="onBirdieMode('multiplier')">버디한 사람만 2배<br><small>버디 플레이어만 2배 적용</small></button>
         </div>
-        <div id="birdieMultRow" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+        <div id="birdieMultRow" style="display:none; align-items:center; gap:8px; margin-top:8px;">
           <span class="rule-mult-label">배수</span>
           <input class="rule-mult-input" id="birdieMultiplier" type="number" min="1" max="20" value="2">
           <span class="rule-mult-label">배</span>
@@ -1236,7 +1301,7 @@ let CONFIG = {
   players: ['플레이어1', '플레이어2', '플레이어3', '플레이어4'],
   unit: 1000,
   rules: {
-    birdie:    { enabled: false, mult: 2, mode: 'multiplier' },
+    birdie:    { enabled: false, mult: 2, mode: 'baeban' },
     eagle:     { enabled: false, mult: 3, mode: 'multiplier', flatAmount: 5000 },
     albatross: { enabled: false, mult: 5, mode: 'multiplier', flatAmount: 10000 },
     holeinone: { enabled: false, mult: 5, mode: 'multiplier', flatAmount: 5000 },
@@ -1429,7 +1494,7 @@ let setupHoleinoneMode = 'multiplier';
 function onBirdieMode(val) {
   setupBirdieMode = val;
   document.querySelectorAll('#birdieModeButtons .pill-btn').forEach((btn, i) => {
-    btn.classList.toggle('active', i === (val === 'multiplier' ? 0 : 1));
+    btn.classList.toggle('active', i === (val === 'baeban' ? 0 : 1));
   });
   document.getElementById('birdieMultRow').style.display = val === 'multiplier' ? 'flex' : 'none';
 }
@@ -1562,16 +1627,12 @@ function buildHoles() {
         <div class="input-row" style="grid-template-columns: 60px repeat(${N}, 1fr)">
           <div class="input-col">
             <div class="input-label">파</div>
-            <input class="score-input" id="par-${h}" type="number" min="3" max="5"
-              value="${d.par}" onchange="setPar(${h},this.value)" style="font-size:16px;">
+            ${buildSpHTML(`sp-par-${h}`, [3,4,5], d.par)}
           </div>
           ${CONFIG.players.map((name, i) => `
             <div class="input-col">
               <div class="input-label">${escapeHtml(name)}</div>
-              <input class="score-input" id="score-${h}-${i}" type="number" min="1" max="12"
-                value="${d.scores[i] !== null ? d.scores[i] : ''}"
-                placeholder="-"
-                oninput="setScore(${h},${i},this.value)">
+              ${buildSpHTML(`sp-score-${h}-${i}`, SP_SCORE_VALS, d.scores[i])}
             </div>
           `).join('')}
         </div>
@@ -1580,6 +1641,85 @@ function buildHoles() {
     `;
     container.appendChild(card);
   }
+  requestAnimationFrame(initAllScrollPickers);
+}
+
+// ─────────────────────────────────────────────
+// SCROLL PICKER
+// ─────────────────────────────────────────────
+const SP_SCORE_VALS = [null,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
+const SP_ITEM_H = 32;
+
+function buildSpHTML(id, vals, initVal) {
+  const items = vals.map(v => {
+    const isNull = v === null;
+    const isSel  = v === initVal;
+    const cls = 'sp-item' + (isNull ? ' sp-empty' : '') + (isSel ? ' sp-sel' : '');
+    return `<div class="${cls}" data-v="${isNull ? '' : v}">${isNull ? '−' : v}</div>`;
+  }).join('');
+  return `<div class="sp-wrap" id="${id}"><div class="sp-sel-line"></div><div class="sp-scroll"><div class="sp-pad"></div>${items}<div class="sp-pad"></div></div></div>`;
+}
+
+function initSp(id, vals, onChange) {
+  const wrap = document.getElementById(id);
+  if (!wrap || wrap._spInited) return;
+  wrap._spInited = true;
+  const scroll = wrap.querySelector('.sp-scroll');
+  const items  = Array.from(scroll.querySelectorAll('.sp-item'));
+
+  function highlight(val) {
+    items.forEach(el => {
+      const v = el.dataset.v === '' ? null : parseInt(el.dataset.v);
+      el.classList.toggle('sp-sel', v === val);
+    });
+  }
+
+  // Restore scroll position to currently-selected item
+  const selIdx = items.findIndex(el => el.classList.contains('sp-sel'));
+  if (selIdx >= 0) scroll.scrollTop = selIdx * SP_ITEM_H;
+
+  wrap._spSet = (val) => {
+    const idx = vals.indexOf(val);
+    if (idx < 0) return;
+    scroll.scrollTo({ top: idx * SP_ITEM_H, behavior: 'smooth' });
+    highlight(val);
+  };
+
+  let timer, lastVal = vals[Math.max(0, selIdx)];
+  scroll.addEventListener('scroll', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const idx = Math.max(0, Math.min(Math.round(scroll.scrollTop / SP_ITEM_H), vals.length - 1));
+      const val = vals[idx];
+      scroll.scrollTo({ top: idx * SP_ITEM_H, behavior: 'smooth' });
+      highlight(val);
+      if (val !== lastVal) { lastVal = val; onChange(val); }
+    }, 80);
+  }, { passive: true });
+}
+
+function initAllScrollPickers() {
+  const parVals = [3, 4, 5];
+  for (let h = 0; h < HOLES; h++) {
+    initSp(`sp-par-${h}`, parVals, val => setParFromPicker(h, val));
+    for (let pi = 0; pi < CONFIG.players.length; pi++) {
+      initSp(`sp-score-${h}-${pi}`, SP_SCORE_VALS, val => setScoreFromPicker(h, pi, val));
+    }
+  }
+}
+
+function setParFromPicker(h, val) {
+  gameData[h].par = val;
+  saveGameData();
+  updateHole(h);
+  updateAll();
+}
+
+function setScoreFromPicker(h, pi, val) {
+  gameData[h].scores[pi] = val;
+  saveGameData();
+  updateHole(h);
+  updateAll();
 }
 
 // ─────────────────────────────────────────────
@@ -1598,14 +1738,19 @@ function setPar(h, val) {
   if (isNaN(v) || v < 3 || v > 5) return;
   gameData[h].par = v;
   saveGameData();
+  const sp = document.getElementById(`sp-par-${h}`);
+  if (sp?._spSet) sp._spSet(v);
   updateHole(h);
   updateAll();
 }
 
 function setScore(h, playerIdx, val) {
   const v = val === '' ? null : parseInt(val);
-  gameData[h].scores[playerIdx] = (v !== null && isNaN(v)) ? null : v;
+  const score = (v !== null && isNaN(v)) ? null : v;
+  gameData[h].scores[playerIdx] = score;
   saveGameData();
+  const sp = document.getElementById(`sp-score-${h}-${playerIdx}`);
+  if (sp?._spSet) sp._spSet(score);
   updateHole(h);
   updateAll();
 }
@@ -1676,7 +1821,9 @@ function calcHoleDelta(holeIdx) {
   const nplusCount     = getSameScoreNPlusCount(holeIdx);  // 해당 홀 N명 이상 동점 배판
   const overparCount   = getOverparBaebanCount(holeIdx);   // 해당 홀 파 초과 배판
   const maxMult        = (CONFIG.rules.baeban && CONFIG.rules.baeban.maxMult) || 3;
-  const totalBaeban    = baebanCount + nplusCount + overparCount;
+  const birdieMode     = CONFIG.rules.birdie.mode    || 'baeban';
+  const birdieBaebanCount = (CONFIG.rules.birdie.enabled && birdieMode === 'baeban' && isBirdie.some(Boolean)) ? 1 : 0;
+  const totalBaeban       = baebanCount + nplusCount + overparCount + birdieBaebanCount;
   const isBaeban       = totalBaeban > 0;
   const baebanBase     = isBaeban ? Math.min(1 + totalBaeban, maxMult) : 1;
 
@@ -1690,7 +1837,6 @@ function calcHoleDelta(holeIdx) {
       const strokes = Math.abs(diff);
 
       let mult;
-      const birdieMode    = CONFIG.rules.birdie.mode    || 'multiplier';
       const eagleMode     = CONFIG.rules.eagle.mode     || 'multiplier';
       const albatrossMode = CONFIG.rules.albatross.mode || 'multiplier';
       const holeinoneMode = CONFIG.rules.holeinone.mode || 'multiplier';
@@ -1733,19 +1879,6 @@ function calcHoleDelta(holeIdx) {
   }
 
   // ── 정액 보너스 (배판 배수 적용) ──
-
-  // 버디 +1타 방식: 버디 플레이어가 비버디 플레이어 각각에게 1타분 추가 수령 (배판 배수 적용)
-  if (CONFIG.rules.birdie.enabled && (CONFIG.rules.birdie.mode || 'multiplier') === 'flat') {
-    const amt = CONFIG.unit * baebanBase;
-    for (let i = 0; i < N; i++) {
-      if (!isBirdie[i]) continue;
-      for (let j = 0; j < N; j++) {
-        if (i === j || isBirdie[j]) continue;
-        delta[i] += amt;
-        delta[j] -= amt;
-      }
-    }
-  }
 
   // 이글 정액: 이글 플레이어가 비이글 플레이어 각각에게 정액 수령 (배판 배수 적용)
   if (CONFIG.rules.eagle.enabled && (CONFIG.rules.eagle.mode || 'multiplier') === 'flat') {
@@ -2042,7 +2175,7 @@ function loadConfig() {
       baeban:    { enabled: false, maxMult: 3, overpar: false, nplus: { enabled: false, count: 2 } },
     };
     Object.entries(defaults).forEach(([k, v]) => { if (!cfg.rules[k]) cfg.rules[k] = v; });
-    if (!cfg.rules.birdie.mode) cfg.rules.birdie.mode = 'multiplier';
+    if (!cfg.rules.birdie.mode || cfg.rules.birdie.mode === 'flat') cfg.rules.birdie.mode = 'baeban';
     return cfg;
   } catch(e) { return null; }
 }
