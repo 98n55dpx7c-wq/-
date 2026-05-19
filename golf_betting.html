@@ -1085,7 +1085,30 @@
         </label>
       </div>
       <div id="baebanDetailWrap" class="threshold-row">
-        <div class="rule-row" style="margin-bottom:10px; padding:0;">
+
+        <!-- 전원 동점 → 다음 홀 배판 -->
+        <div style="font-size:12px; color:#5a7a9a; margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #1e3048;">
+          🔁 전원 동점 → 다음 홀 배판 (기본 동작)
+        </div>
+
+        <!-- N명 이상 동점 → 해당 홀 배판 -->
+        <div class="rule-row" style="margin-bottom:6px; padding:0;">
+          <span class="rule-name" style="flex:1; font-size:13px; line-height:1.5">
+            👥 N명 이상 동점 → 해당 홀 배판
+            <br><small style="color:#5a7a9a; font-weight:400">지정 인원 이상 같은 점수 시 해당 홀에 즉시 적용</small>
+          </span>
+          <label class="toggle-wrap">
+            <input type="checkbox" id="baebanNplusOn" onchange="onBaebanNplusToggle()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div id="baebanNplusWrap" style="display:flex; align-items:center; gap:8px; margin-bottom:10px; opacity:0.4; pointer-events:none;">
+          <input class="rule-mult-input" id="baebanNplusCount" type="number" min="2" max="20" value="2">
+          <span class="rule-mult-label">명 이상 동점 시</span>
+        </div>
+
+        <!-- 파 초과 배판 -->
+        <div class="rule-row" style="margin-bottom:6px; padding:0;">
           <span class="rule-name" style="flex:1; font-size:13px; line-height:1.5">
             ⛳ 파 초과 배판
             <br><small style="color:#5a7a9a; font-weight:400">파3: 더블보기 이상 / 파4·5: 트리플보기 이상</small>
@@ -1095,11 +1118,14 @@
             <span class="toggle-slider"></span>
           </label>
         </div>
-        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+
+        <!-- 최대 배판 배수 -->
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:4px; padding-top:10px; border-top:1px solid #1e3048;">
           <span class="threshold-label" style="margin:0">최대 배판 배수 (중복 시 한도)</span>
           <input class="rule-mult-input" id="baebanMaxMult" type="number" min="2" max="10" value="3">
           <span class="rule-mult-label">배</span>
         </div>
+
       </div>
     </div>
 
@@ -1215,7 +1241,7 @@ let CONFIG = {
     albatross: { enabled: false, mult: 5, mode: 'multiplier', flatAmount: 10000 },
     holeinone: { enabled: false, mult: 5, mode: 'multiplier', flatAmount: 5000 },
     yangpa:    { enabled: false, mult: 2 },
-    baeban:    { enabled: false, maxMult: 3, overpar: false },
+    baeban:    { enabled: false, maxMult: 3, overpar: false, nplus: { enabled: false, count: 2 } },
   }
 };
 
@@ -1320,10 +1346,15 @@ function renderSetupForm() {
   document.getElementById('birdieModeWrap').style.pointerEvents = birdieRule.enabled ? '' : 'none';
 
   // 배판
-  const baeban = CONFIG.rules.baeban || { enabled: false, maxMult: 3, overpar: false };
+  const baeban = CONFIG.rules.baeban || { enabled: false, maxMult: 3, overpar: false, nplus: { enabled: false, count: 2 } };
   document.getElementById('baebanOn').checked = baeban.enabled;
   document.getElementById('baebanMaxMult').value = baeban.maxMult || 3;
   document.getElementById('baebanOverparOn').checked = baeban.overpar || false;
+  const np = baeban.nplus || { enabled: false, count: 2 };
+  document.getElementById('baebanNplusOn').checked = np.enabled;
+  document.getElementById('baebanNplusCount').value = np.count || 2;
+  document.getElementById('baebanNplusWrap').style.opacity = np.enabled ? '1' : '0.4';
+  document.getElementById('baebanNplusWrap').style.pointerEvents = np.enabled ? '' : 'none';
   document.getElementById('baebanDetailWrap').style.opacity = baeban.enabled ? '1' : '0.4';
   document.getElementById('baebanDetailWrap').style.pointerEvents = baeban.enabled ? '' : 'none';
 }
@@ -1384,6 +1415,13 @@ function onBaebanToggle() {
   const enabled = document.getElementById('baebanOn').checked;
   document.getElementById('baebanDetailWrap').style.opacity = enabled ? '1' : '0.4';
   document.getElementById('baebanDetailWrap').style.pointerEvents = enabled ? '' : 'none';
+}
+
+function onBaebanNplusToggle() {
+  const on = document.getElementById('baebanNplusOn').checked;
+  const wrap = document.getElementById('baebanNplusWrap');
+  wrap.style.opacity = on ? '1' : '0.4';
+  wrap.style.pointerEvents = on ? '' : 'none';
 }
 
 let setupBirdieMode    = 'multiplier';
@@ -1459,10 +1497,15 @@ function startGame() {
 
   // 배판
   const baebanMaxMult = parseInt(document.getElementById('baebanMaxMult').value) || 3;
+  const nplusCount = parseInt(document.getElementById('baebanNplusCount').value) || 2;
   rules.baeban = {
     enabled: document.getElementById('baebanOn').checked,
     maxMult: Math.max(2, baebanMaxMult),
     overpar: document.getElementById('baebanOverparOn').checked,
+    nplus: {
+      enabled: document.getElementById('baebanNplusOn').checked,
+      count: Math.max(2, nplusCount),
+    },
   };
 
   CONFIG = { players: names, unit, rules };
@@ -1596,6 +1639,18 @@ function holeCarries(holeIdx) {
   return isAllTie(holeIdx) || isOverparTrigger(holeIdx);
 }
 
+// N명 이상 동점 → 해당 홀 즉시 배판 (+1 카운트)
+function getSameScoreNPlusCount(holeIdx) {
+  const np = CONFIG.rules.baeban && CONFIG.rules.baeban.nplus;
+  if (!np || !np.enabled) return 0;
+  const { scores } = gameData[holeIdx];
+  if (scores.some(s => s === null)) return 0;
+  const n = np.count || 2;
+  const freq = {};
+  for (const s of scores) freq[s] = (freq[s] || 0) + 1;
+  return Object.values(freq).some(c => c >= n) ? 1 : 0;
+}
+
 function getBaebanCount(holeIdx) {
   if (!CONFIG.rules.baeban || !CONFIG.rules.baeban.enabled) return 0;
   let count = 0;
@@ -1619,11 +1674,12 @@ function calcHoleDelta(holeIdx) {
   const isBirdie    = scores.map(s => s <= par - 1);
   const isYangpa    = scores.map(s => s >= yangpaThreshold(par));
 
-  const baebanCount = getBaebanCount(holeIdx);
-  const maxMult     = (CONFIG.rules.baeban && CONFIG.rules.baeban.maxMult) || 3;
-  const isBaeban    = baebanCount > 0;
-  // 배판 base multiplier: 2 for first tie, keeps doubling but capped
-  const baebanBase  = isBaeban ? Math.min(1 + baebanCount, maxMult) : 1;
+  const baebanCount    = getBaebanCount(holeIdx);       // 이전 홀 이월 배판
+  const nplusCount     = getSameScoreNPlusCount(holeIdx); // 해당 홀 N명 이상 동점 배판
+  const maxMult        = (CONFIG.rules.baeban && CONFIG.rules.baeban.maxMult) || 3;
+  const totalBaeban    = baebanCount + nplusCount;
+  const isBaeban       = totalBaeban > 0;
+  const baebanBase     = isBaeban ? Math.min(1 + totalBaeban, maxMult) : 1;
 
   for (let a = 0; a < N; a++) {
     for (let b = a + 1; b < N; b++) {
@@ -1764,7 +1820,7 @@ function updateAll() {
   // 배판 배지가 변경될 수 있는 홀들의 배지 갱신 (다음 홀)
   // updateHole은 이미 현재 홀을 갱신하므로, 연쇄 배판 홀 배지만 별도 갱신
   for (let h = 0; h < HOLES; h++) {
-    const baebanCount = getBaebanCount(h);
+    const baebanCount = getBaebanCount(h) + getSameScoreNPlusCount(h);
     const maxMult = (CONFIG.rules.baeban && CONFIG.rules.baeban.maxMult) || 3;
     const baebanMult = baebanCount > 0 ? Math.min(1 + baebanCount, maxMult) : 1;
     const badgesEl = document.getElementById(`badges-${h}`);
@@ -1810,7 +1866,7 @@ function updateHole(h) {
   }
 
   // 배판 여부 계산
-  const baebanCount = getBaebanCount(h);
+  const baebanCount = getBaebanCount(h) + getSameScoreNPlusCount(h);
   const maxMult     = (CONFIG.rules.baeban && CONFIG.rules.baeban.maxMult) || 3;
   const baebanMult  = baebanCount > 0 ? Math.min(1 + baebanCount, maxMult) : 1;
 
@@ -1984,7 +2040,7 @@ function loadConfig() {
     const defaults = {
       albatross: { enabled: false, mult: 5 },
       holeinone: { enabled: false, mult: 5 },
-      baeban:    { enabled: false, maxMult: 3, overpar: false },
+      baeban:    { enabled: false, maxMult: 3, overpar: false, nplus: { enabled: false, count: 2 } },
     };
     Object.entries(defaults).forEach(([k, v]) => { if (!cfg.rules[k]) cfg.rules[k] = v; });
     if (!cfg.rules.birdie.mode) cfg.rules.birdie.mode = 'multiplier';
