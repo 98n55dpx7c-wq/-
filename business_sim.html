@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>경영 시뮬레이션 — CEO의 15년</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#1a2332; --panel:#0f1923; --panel2:#162336;
+    --card:#1e2d40; --card2:#1e3048; --inset:#132030;
+    --border:#2d4a6e; --border2:#2a3f58;
+    --text:#e8edf3; --muted:#5a7a9a; --muted2:#7a9fc2;
+    --accent:#a8c8e8; --accent2:#d0e8ff;
+    --green:#4ec97a; --green-bg:#142a1e;
+    --red:#ff6b6b; --red-bg:#2a1414;
+    --gold:#f0c060; --cyan:#4ec9c9;
+    --grad:linear-gradient(90deg,#2d6a9f,#4ec97a);
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+
+  body {
+    font-family:-apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif;
+    background:var(--bg); color:var(--text); min-height:100vh;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  /* ── Top progress bar ── */
+  #progressBar { position:sticky; top:0; z-index:120; height:4px; background:#0a121c; }
+  #progressFill { height:100%; width:0%; background:var(--grad); transition:width .5s ease; }
+
+  /* ── Dashboard ── */
+  #dashboard {
+    position:sticky; top:4px; z-index:100;
+    background:var(--panel); border-bottom:2px solid var(--border);
+    padding:10px 12px 8px; box-shadow:0 2px 12px rgba(0,0,0,.5);
+  }
+  #dash-head {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:8px;
+  }
+  #dash-title { font-size:14px; font-weight:800; color:var(--accent2); }
+  #dash-year { font-size:12px; font-weight:700; color:var(--gold); }
+
+  .metric-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+  .metric-card {
+    background:var(--card2); border:1px solid var(--border);
+    border-radius:10px; padding:7px 6px 8px; text-align:center;
+  }
+  .metric-card .m-name { font-size:11px; font-weight:700; color:var(--accent); margin-bottom:2px; }
+  .metric-card .m-val { font-size:16px; font-weight:800; transition:color .3s; }
+  .metric-card .m-delta { font-size:10px; font-weight:700; height:12px; }
+  .m-delta.plus { color:var(--green); }
+  .m-delta.minus { color:var(--red); }
+  .stat-bar { height:5px; border-radius:4px; background:#0c1622; margin-top:4px; overflow:hidden; }
+  .stat-fill { height:100%; border-radius:4px; transition:width .4s ease, background .4s; }
+  .lv-hi { background:var(--green); } .lv-mid { background:var(--gold); } .lv-lo { background:var(--red); }
+
+  /* ── 7 functional sub-scores strip ── */
+  #sub-strip {
+    display:grid; grid-template-columns:repeat(7,1fr); gap:4px;
+    margin-top:8px; padding-top:8px; border-top:1px solid var(--border2);
+  }
+  .sub-cell { text-align:center; }
+  .sub-cell .s-name { font-size:9px; color:var(--muted2); font-weight:600; margin-bottom:2px; line-height:1.1; }
+  .sub-cell .s-val { font-size:11px; font-weight:700; color:var(--text); }
+  .sub-bar { height:3px; border-radius:3px; background:#0c1622; margin-top:2px; overflow:hidden; }
+
+  /* ── Main ── */
+  main { padding:12px; max-width:600px; margin:0 auto; }
+
+  .section-title {
+    font-size:11px; color:var(--muted); letter-spacing:1px;
+    text-transform:uppercase; font-weight:700; margin:4px 2px 8px;
+  }
+
+  /* ── Scenario card ── */
+  .scenario-card {
+    background:var(--card); border:1px solid var(--border2);
+    border-radius:14px; overflow:hidden; margin-bottom:12px;
+  }
+  .scn-header { padding:12px 14px 10px; background:var(--panel2); }
+  .scn-badges { display:flex; gap:6px; margin-bottom:6px; flex-wrap:wrap; }
+  .scn-year { font-size:11px; font-weight:700; color:var(--gold); }
+  .cat-badge {
+    font-size:10px; padding:2px 8px; border-radius:20px; font-weight:700;
+  }
+  .cat-opportunity { background:#1a3a4a; color:var(--cyan); border:1px solid var(--cyan); }
+  .cat-crisis { background:var(--red-bg); color:var(--red); border:1px solid var(--red); }
+  .cat-growth { background:var(--green-bg); color:var(--green); border:1px solid var(--green); }
+  .cat-market { background:#2a2440; color:#c9a0ff; border:1px solid #c9a0ff; }
+  .cat-org { background:#3a2e14; color:var(--gold); border:1px solid var(--gold); }
+  .scn-title { font-size:17px; font-weight:800; color:var(--accent2); margin-bottom:6px; }
+  .scn-desc { font-size:13.5px; line-height:1.6; color:#cdddee; }
+
+  /* ── Decision blocks ── */
+  .scn-body { padding:12px 14px 14px; }
+  .decision {
+    background:var(--inset); border:1px solid var(--border2);
+    border-radius:10px; padding:10px 11px; margin-bottom:10px;
+  }
+  .dec-head { display:flex; align-items:center; gap:7px; margin-bottom:8px; }
+  .dom-badge {
+    font-size:11px; font-weight:800; padding:2px 9px; border-radius:20px;
+    border:1px solid; white-space:nowrap;
+  }
+  .dec-q { font-size:13px; font-weight:600; color:var(--accent); }
+  .options { display:flex; flex-direction:column; gap:6px; }
+  .opt-btn {
+    text-align:left; width:100%; background:var(--card2);
+    border:1.5px solid var(--border); color:var(--text);
+    border-radius:8px; padding:9px 11px; font-size:13px; line-height:1.4;
+    cursor:pointer; transition:all .15s; font-family:inherit;
+  }
+  .opt-btn:active { transform:scale(.99); }
+  .opt-btn.selected {
+    border-color:var(--green); background:#16322a; color:#dffaeb;
+    box-shadow:0 0 0 1px var(--green) inset;
+  }
+
+  /* ── Settle button ── */
+  .settle-btn {
+    width:100%; padding:14px; border:none; border-radius:12px;
+    font-size:16px; font-weight:800; font-family:inherit; cursor:pointer;
+    background:var(--grad); color:#06140c; transition:opacity .2s;
+    margin-top:4px;
+  }
+  .settle-btn:disabled { background:#243548; color:#5a7a9a; cursor:not-allowed; }
+  .settle-hint { font-size:11px; color:var(--muted); text-align:center; margin-top:8px; }
+
+  /* ── Result panel ── */
+  .result-panel {
+    background:var(--card); border:1px solid var(--border2);
+    border-radius:14px; padding:14px; margin-bottom:12px;
+  }
+  .result-panel h3 { font-size:16px; color:var(--accent2); margin-bottom:10px; }
+  .syn-msg {
+    font-size:13px; line-height:1.55; padding:9px 11px; border-radius:9px;
+    margin-bottom:7px; border-left:3px solid;
+  }
+  .syn-msg.synergy { background:var(--green-bg); border-color:var(--green); color:#cdf3d9; }
+  .syn-msg.conflict { background:var(--red-bg); border-color:var(--red); color:#ffd3d3; }
+  .syn-msg.neutral { background:var(--inset); border-color:var(--muted); color:#c5d6e6; }
+  .syn-tag { font-weight:800; margin-right:5px; }
+
+  .delta-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:12px 0 6px; }
+  .delta-cell {
+    background:var(--inset); border:1px solid var(--border2);
+    border-radius:9px; padding:7px 4px; text-align:center;
+  }
+  .delta-cell .d-name { font-size:10px; color:var(--muted2); margin-bottom:3px; }
+  .delta-cell .d-val { font-size:14px; font-weight:800; }
+  .d-val.plus { color:var(--green); } .d-val.minus { color:var(--red); } .d-val.zero { color:var(--muted); }
+  .sub-delta-line { font-size:11px; color:var(--muted2); text-align:center; margin-top:6px; line-height:1.7; }
+  .sub-delta-line .up { color:var(--green); font-weight:700; }
+  .sub-delta-line .down { color:var(--red); font-weight:700; }
+
+  /* ── Ending ── */
+  #endingScreen { text-align:center; padding:8px 4px 24px; }
+  .ending-emoji { font-size:54px; margin:12px 0 4px; }
+  .ending-title { font-size:24px; font-weight:800; margin-bottom:6px; line-height:1.3; }
+  .ending-title.good { color:var(--green); } .ending-title.neutral { color:var(--gold); } .ending-title.bad { color:var(--red); }
+  .ending-sub { font-size:12px; color:var(--muted2); margin-bottom:14px; }
+  .ending-text { font-size:14px; line-height:1.7; color:#cdddee; text-align:left;
+    background:var(--card); border:1px solid var(--border2); border-radius:12px; padding:14px; margin-bottom:14px; }
+  .timeline {
+    text-align:left; background:var(--inset); border:1px solid var(--border2);
+    border-radius:12px; padding:12px 14px; margin-bottom:14px;
+  }
+  .timeline h4 { font-size:13px; color:var(--accent); margin-bottom:8px; }
+  .tl-item { font-size:12px; color:#bcd0e2; line-height:1.6; padding:3px 0; border-bottom:1px dashed #233650; }
+  .tl-item:last-child { border-bottom:none; }
+  .tl-year { color:var(--gold); font-weight:700; margin-right:6px; }
+  .final-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:14px; }
+
+  button.primary {
+    width:100%; padding:13px; border:none; border-radius:12px;
+    font-size:15px; font-weight:800; font-family:inherit; cursor:pointer;
+    background:var(--grad); color:#06140c;
+  }
+  button.ghost {
+    width:100%; padding:11px; border:1px solid var(--border); border-radius:10px;
+    font-size:13px; font-weight:700; font-family:inherit; cursor:pointer;
+    background:transparent; color:var(--muted2); margin-top:8px;
+  }
+  .footer-note { font-size:10px; color:#3d556e; text-align:center; padding:16px 0 8px; }
+</style>
+</head>
+<body>
+  <div id="progressBar"><div id="progressFill"></div></div>
+  <div id="dashboard"></div>
+  <main>
+    <div id="scenarioArea"></div>
+    <div id="endingScreen" style="display:none;"></div>
+    <div class="footer-note">경영 시뮬레이션 · 7개 기능 의사결정의 조합이 회사의 운명을 바꿉니다</div>
+  </main>
+
+<script>
+/* =========================================================
+   CONFIG
+   ========================================================= */
+const CONFIG = {
+  COMPANY: '(주)한빛',
+  MAX_YEAR: 15,
+  SAVE_KEY: 'businessSim',
+  SAVE_VER: 2,
+  START_STATS: { cash:100, revenue:50, morale:60, reputation:50 },
+  START_SUB:   { strategy:50, hr:50, finance:50, accounting:55, marketing:50, ops:50, mis:45 },
+};
+
+/* 4대 핵심 지표 메타 */
+const METRICS = [
+  { key:'cash',       name:'자금',   unit:'억', isCash:true },
+  { key:'revenue',    name:'매출력', unit:'',   isCash:false },
+  { key:'morale',     name:'조직력', unit:'',   isCash:false },
+  { key:'reputation', name:'평판',   unit:'',   isCash:false },
+];
+
+/* 7개 기능 영역 메타 */
+const DOMAINS = {
+  strategy:   { label:'전략',     short:'전략', color:'#4ec9c9' },
+  hr:         { label:'인사',     short:'인사', color:'#4ec97a' },
+  finance:    { label:'재무',     short:'재무', color:'#f0c060' },
+  accounting: { label:'회계',     short:'회계', color:'#c9a0ff' },
+  marketing:  { label:'마케팅',   short:'마케팅', color:'#ff8fb0' },
+  ops:        { label:'생산/서비스', short:'생산', color:'#6fa8ff' },
+  mis:        { label:'MIS',      short:'MIS',  color:'#5ad1e8' },
+};
+const SUB_NAMES = {
+  strategy:'전략지수', hr:'인사역량', finance:'재무건전', accounting:'회계투명',
+  marketing:'마케팅력', ops:'생산품질', mis:'MIS성숙',
+};
+
+/* =========================================================
+   DATA: SCENARIOS
+   - year: 고정 마일스톤 / null: 풀(yearMin~yearMax)
+   - decisions[].options[]: { text, base{4지표}, sub{7기능}, tags[], setFlags{} }
+   ========================================================= */
+const SCENARIOS = [
+  /* ── 마일스톤: 1년차 창업 ── */
+  {
+    id:'y1_founding', year:1, weight:100, category:'opportunity', title:'창업: 첫 사업의 방향',
+    env:{ tags:['startup'] },
+    description:'드디어 회사를 설립했습니다. 자본은 넉넉하지 않지만 시장의 기회는 열려 있습니다. 창업 첫 해, 회사의 토대를 어떻게 다질지 결정해야 합니다.',
+    decisions:[
+      { domain:'strategy', question:'주력 사업 방향을 정하세요.', options:[
+        { text:'안정적인 B2B 수주 사업으로 시작한다', base:{cash:15,revenue:10}, sub:{strategy:5,finance:5}, tags:['b2b','conservative'] },
+        { text:'대중을 겨냥한 B2C 신제품에 집중한다', base:{cash:-15,revenue:22}, sub:{strategy:8,marketing:6}, tags:['b2c','aggressive','marketing-push'] },
+        { text:'틈새시장 한 곳에 역량을 집중한다', base:{cash:5,revenue:8}, sub:{strategy:10}, tags:['focus','conservative'] },
+      ]},
+      { domain:'finance', question:'초기 자금은 어떻게 마련하나요?', options:[
+        { text:'자기자본 위주로 보수적으로 운용한다', base:{cash:0}, sub:{finance:8}, tags:['finance-tight','reserve','conservative'] },
+        { text:'벤처캐피탈 투자를 유치한다', base:{cash:45,revenue:-3}, sub:{finance:5}, tags:['vc','equity','growth'], setFlags:{vcFunded:true} },
+        { text:'은행 대출로 공격적으로 확장한다', base:{cash:35}, sub:{finance:-6}, tags:['debt','finance-loose','aggressive'] },
+      ]},
+      { domain:'hr', question:'초기 조직은 어떻게 꾸리나요?', options:[
+        { text:'소수 정예로 출발한다', base:{cash:8}, sub:{hr:4,ops:3}, tags:['lean','hr-cut'] },
+        { text:'핵심 인재를 적극 영입한다', base:{cash:-12,morale:6}, sub:{hr:12}, tags:['hr-invest','talent'] },
+        { text:'수평적 스타트업 문화를 구축한다', base:{morale:10}, sub:{hr:8}, tags:['culture','hr-invest'] },
+      ]},
+    ],
+  },
+
+  /* ── 마일스톤: 5년차 확장 기로 ── */
+  {
+    id:'y5_expansion', year:5, weight:100, category:'growth', title:'성장의 기로: 확장이냐 내실이냐',
+    env:{ tags:['growth-phase'] },
+    description:'창업 5년 차, 회사는 어느 정도 자리를 잡았습니다. 이제 더 큰 도약을 노릴지, 내실을 다질지 중대한 갈림길에 섰습니다.',
+    decisions:[
+      { domain:'strategy', question:'성장 전략을 선택하세요.', options:[
+        { text:'신규 시장·해외로 공격적으로 확장한다', base:{cash:-25,revenue:18}, sub:{strategy:10,marketing:5}, tags:['global','aggressive','growth','diversify'] },
+        { text:'기존 사업의 점유율을 굳힌다', base:{cash:5,revenue:8}, sub:{strategy:6,ops:5}, tags:['focus','conservative'] },
+        { text:'사업 포트폴리오를 다각화한다', base:{cash:-15,revenue:12}, sub:{strategy:8}, tags:['diversify','growth'] },
+      ]},
+      { domain:'ops', question:'생산/서비스 역량을 어떻게 키우나요?', options:[
+        { text:'대규모 설비·인프라에 투자한다', base:{cash:-30,revenue:6}, sub:{ops:15}, tags:['capex','quality-up'] },
+        { text:'외주·아웃소싱으로 유연하게 간다', base:{cash:-5,revenue:4}, sub:{ops:5}, tags:['outsource','lean'] },
+        { text:'공정 자동화로 효율을 높인다', base:{cash:-18}, sub:{ops:10,mis:8}, tags:['automate','mis-automation'] },
+      ]},
+      { domain:'marketing', question:'마케팅 전략은?', options:[
+        { text:'대규모 브랜드 캠페인을 집행한다', base:{cash:-22,revenue:15,reputation:8}, sub:{marketing:14}, tags:['marketing-push','brand'] },
+        { text:'가격 경쟁력으로 점유율을 늘린다', base:{revenue:12,reputation:-4}, sub:{marketing:6}, tags:['price-cut','marketing-push'] },
+        { text:'프리미엄 포지셔닝을 강화한다', base:{cash:-8,revenue:6,reputation:10}, sub:{marketing:10}, tags:['premium','brand'] },
+      ]},
+      { domain:'finance', question:'확장 재원은 어떻게 조달하나요?', options:[
+        { text:'현금을 비축하며 신중히 간다', base:{cash:10}, sub:{finance:10}, tags:['reserve','finance-tight','conservative'] },
+        { text:'대규모 차입으로 실탄을 확보한다', base:{cash:30}, sub:{finance:-8}, tags:['debt','finance-loose','aggressive'] },
+        { text:'유상증자로 자본을 확충한다', base:{cash:25,revenue:-2}, sub:{finance:3}, tags:['equity'] },
+      ]},
+    ],
+  },
+
+  /* ── 마일스톤: 10년차 대형 위기 ── */
+  {
+    id:'y10_crisis', year:10, weight:100, category:'crisis', title:'창사 이래 최대 위기',
+    env:{ tags:['recession','shock'] },
+    description:'글로벌 경기 침체와 시장 급변이 겹쳤습니다. 매출이 흔들리고 내부 동요도 큽니다. 위기를 어떻게 돌파할지가 회사의 미래를 가릅니다.',
+    decisions:[
+      { domain:'strategy', question:'위기 대응 기조를 정하세요.', options:[
+        { text:'비핵심 사업을 과감히 정리하고 집중한다', base:{cash:20,revenue:-6}, sub:{strategy:10}, tags:['focus','conservative','restructure'] },
+        { text:'위기를 기회 삼아 경쟁사를 인수한다', base:{cash:-35,revenue:15}, sub:{strategy:12}, tags:['ma','aggressive','growth'] },
+        { text:'버티며 시장 회복을 기다린다', base:{cash:-5}, sub:{strategy:3}, tags:['conservative','reserve'] },
+      ]},
+      { domain:'hr', question:'인력 운영은 어떻게 하나요?', options:[
+        { text:'구조조정으로 비용을 줄인다', base:{cash:18,morale:-18,reputation:-10}, sub:{hr:-12}, tags:['layoff','hr-cut'] },
+        { text:'고용을 지키고 임금을 일부 동결한다', base:{cash:-5,morale:5}, sub:{hr:6}, tags:['hr-invest','culture'] },
+        { text:'직무 재배치로 위기를 함께 넘는다', base:{cash:3,morale:2}, sub:{hr:8,ops:4}, tags:['culture','hr-invest'] },
+      ]},
+      { domain:'finance', question:'재무 위기 대응은?', options:[
+        { text:'긴축 경영으로 현금을 지킨다', base:{cash:15}, sub:{finance:10}, tags:['finance-tight','reserve','conservative'] },
+        { text:'추가 차입으로 위기를 정면 돌파한다', base:{cash:25}, sub:{finance:-12}, tags:['debt','finance-loose','aggressive'] },
+        { text:'자산 매각으로 유동성을 확보한다', base:{cash:22,revenue:-5}, sub:{finance:4}, tags:['reserve'] },
+      ]},
+      { domain:'accounting', question:'실적 공시를 어떻게 처리하나요?', options:[
+        { text:'손실을 투명하게 공개하고 신뢰를 지킨다', base:{reputation:8,cash:-3}, sub:{accounting:12}, tags:['transparent','audit'] },
+        { text:'회계 처리를 보수적으로 정리한다', base:{}, sub:{accounting:6}, tags:['transparent'] },
+        { text:'손실을 일부 이연해 실적을 방어한다', base:{revenue:6}, sub:{accounting:-15}, tags:['opaque','aggressive-accounting'], setFlags:{fraudRisk:2} },
+      ]},
+    ],
+  },
+
+  /* ── 마일스톤: 15년차 레거시 ── */
+  {
+    id:'y15_legacy', year:15, weight:100, category:'opportunity', title:'마지막 결단: 어떤 회사로 남을 것인가',
+    env:{ tags:['legacy'] },
+    description:'CEO로서 맞는 마지막 해. 회사를 어떤 모습으로 남길지 결정할 시간입니다. 그동안 쌓아온 모든 역량이 이 결단의 성패를 좌우합니다.',
+    decisions:[
+      { domain:'strategy', question:'회사의 마지막 비전을 선택하세요.', options:[
+        { text:'글로벌 시장을 향한 최후의 도약', base:{cash:-25,revenue:20}, sub:{strategy:10}, tags:['global','aggressive','growth'] },
+        { text:'존경받는 지속가능 기업으로 자리매김', base:{reputation:15,revenue:5}, sub:{strategy:8}, tags:['brand','esg','transparent'] },
+        { text:'안정적 우량기업으로 마무리한다', base:{cash:15,revenue:6}, sub:{strategy:6,finance:6}, tags:['conservative','reserve'] },
+      ]},
+      { domain:'mis', question:'디지털 유산을 어떻게 남기나요?', options:[
+        { text:'전사 디지털 전환을 완성한다', base:{cash:-20,revenue:10}, sub:{mis:16}, tags:['mis-invest','mis-automation','data','ai'] },
+        { text:'핵심 시스템만 안정적으로 유지한다', base:{cash:-3}, sub:{mis:4}, tags:['mis-cut'] },
+        { text:'데이터 자산을 신사업으로 연결한다', base:{cash:-12,revenue:12}, sub:{mis:10}, tags:['data','ai','growth'] },
+      ]},
+      { domain:'hr', question:'조직의 미래를 위해 무엇을 남기나요?', options:[
+        { text:'차세대 리더 육성에 투자한다', base:{cash:-10,morale:12}, sub:{hr:14}, tags:['hr-invest','talent','culture'] },
+        { text:'성과 보상을 두텁게 한다', base:{cash:-15,morale:10}, sub:{hr:8}, tags:['hr-invest'] },
+        { text:'조직을 슬림하게 정비한다', base:{cash:8,morale:-6}, sub:{hr:-4}, tags:['lean','hr-cut'] },
+      ]},
+    ],
+  },
+
+  /* ===================== 풀(POOL) 시나리오 ===================== */
+
+  { id:'p_boom', year:null, yearMin:2, yearMax:13, weight:24, category:'market', title:'시장 호황 도래',
+    env:{ tags:['boom'] },
+    description:'경기가 활황입니다. 수요가 빠르게 늘고 있어, 지금의 결정이 큰 성과로 이어질 수 있습니다.',
+    decisions:[
+      { domain:'strategy', question:'호황을 어떻게 활용하나요?', options:[
+        { text:'생산·판매를 공격적으로 늘린다', base:{cash:-15,revenue:18}, sub:{strategy:6}, tags:['aggressive','growth'] },
+        { text:'적정 수준으로 안정 운영한다', base:{cash:8,revenue:8}, sub:{strategy:4}, tags:['conservative'] },
+      ]},
+      { domain:'finance', question:'호황기 재무 운용은?', options:[
+        { text:'적극 투자로 점유율을 키운다', base:{cash:-20,revenue:10}, sub:{finance:-4}, tags:['finance-loose','aggressive'] },
+        { text:'호황기 이익을 현금으로 비축한다', base:{cash:25}, sub:{finance:10}, tags:['reserve','finance-tight'] },
+      ]},
+      { domain:'marketing', question:'마케팅은?', options:[
+        { text:'공격적 마케팅으로 수요를 흡수한다', base:{cash:-15,revenue:16}, sub:{marketing:10}, tags:['marketing-push'] },
+        { text:'브랜드 가치 제고에 쓴다', base:{cash:-8,reputation:8}, sub:{marketing:8}, tags:['brand'] },
+      ]},
+    ],
+  },
+
+  { id:'p_recession', year:null, yearMin:3, yearMax:14, weight:22, category:'market', title:'경기 침체 국면',
+    env:{ tags:['recession'] },
+    description:'경기가 가라앉고 소비가 위축됩니다. 현금 흐름 관리가 무엇보다 중요해진 시기입니다.',
+    decisions:[
+      { domain:'finance', question:'침체기 재무 전략은?', options:[
+        { text:'긴축하며 현금을 지킨다', base:{cash:12}, sub:{finance:10}, tags:['finance-tight','reserve','conservative'] },
+        { text:'저평가 자산에 역발상 투자한다', base:{cash:-22,revenue:8}, sub:{finance:-4}, tags:['finance-loose','aggressive'] },
+      ]},
+      { domain:'ops', question:'운영 비용은?', options:[
+        { text:'공정 효율화로 원가를 낮춘다', base:{cash:8}, sub:{ops:8,mis:4}, tags:['lean','automate'] },
+        { text:'품질 투자를 유지한다', base:{cash:-10,reputation:5}, sub:{ops:8}, tags:['quality-up'] },
+      ]},
+      { domain:'marketing', question:'마케팅 예산은?', options:[
+        { text:'마케팅을 축소한다', base:{cash:10,revenue:-8}, sub:{marketing:-6}, tags:['marketing-cut'] },
+        { text:'가격 인하로 수요를 방어한다', base:{revenue:6,reputation:-3}, sub:{marketing:4}, tags:['price-cut'] },
+      ]},
+    ],
+  },
+
+  { id:'p_competitor', year:null, yearMin:3, yearMax:14, weight:20, category:'crisis', title:'강력한 경쟁사 진입',
+    env:{ tags:['competition'] },
+    description:'막대한 자본을 앞세운 신규 경쟁사가 시장에 진입했습니다. 우리의 입지가 위협받고 있습니다.',
+    decisions:[
+      { domain:'strategy', question:'경쟁 대응 전략은?', options:[
+        { text:'차별화로 정면 승부한다', base:{cash:-12,revenue:8}, sub:{strategy:8,marketing:4}, tags:['focus','premium'] },
+        { text:'가격 경쟁에 뛰어든다', base:{cash:-8,revenue:6,reputation:-4}, sub:{strategy:3}, tags:['price-cut','marketing-push','aggressive'] },
+        { text:'협력·제휴로 활로를 찾는다', base:{cash:-5,revenue:5}, sub:{strategy:6}, tags:['conservative'] },
+      ]},
+      { domain:'marketing', question:'마케팅 대응은?', options:[
+        { text:'브랜드 충성도를 강화한다', base:{cash:-14,reputation:10}, sub:{marketing:12}, tags:['brand','marketing-push'] },
+        { text:'핵심 고객 관리에 집중한다', base:{cash:-6,revenue:4}, sub:{marketing:6}, tags:['focus'] },
+      ]},
+      { domain:'ops', question:'제품/서비스 경쟁력은?', options:[
+        { text:'품질을 끌어올린다', base:{cash:-15,reputation:6}, sub:{ops:12}, tags:['quality-up','capex'] },
+        { text:'납기·서비스 속도로 승부한다', base:{cash:-8}, sub:{ops:8,mis:5}, tags:['automate'] },
+      ]},
+    ],
+  },
+
+  { id:'p_tech', year:null, yearMin:4, yearMax:14, weight:20, category:'opportunity', title:'기술 패러다임 전환',
+    env:{ tags:['techshift'] },
+    description:'업계에 새로운 기술 물결이 밀려옵니다. 발 빠르게 올라타면 도약의 기회지만, 뒤처지면 도태될 수 있습니다.',
+    decisions:[
+      { domain:'mis', question:'기술 전환에 어떻게 대응하나요?', options:[
+        { text:'대규모 디지털 인프라에 투자한다', base:{cash:-25,revenue:10}, sub:{mis:18}, tags:['mis-invest','mis-automation','data'] },
+        { text:'검증 후 점진적으로 도입한다', base:{cash:-8,revenue:3}, sub:{mis:8}, tags:['mis-invest'] },
+        { text:'기존 방식을 유지한다', base:{cash:5,revenue:-6}, sub:{mis:-8}, tags:['mis-cut'] },
+      ]},
+      { domain:'strategy', question:'사업 전략에 어떻게 반영하나요?', options:[
+        { text:'신기술 기반 신사업을 시작한다', base:{cash:-18,revenue:14}, sub:{strategy:10}, tags:['growth','aggressive','diversify'] },
+        { text:'기존 사업의 효율화에만 쓴다', base:{cash:-5,revenue:4}, sub:{strategy:5,ops:5}, tags:['focus','automate'] },
+      ]},
+      { domain:'hr', question:'인력 역량 전환은?', options:[
+        { text:'전사 재교육에 투자한다', base:{cash:-12,morale:6}, sub:{hr:12}, tags:['hr-invest','talent'] },
+        { text:'외부 전문가를 영입한다', base:{cash:-10}, sub:{hr:6,mis:4}, tags:['talent'] },
+      ]},
+    ],
+  },
+
+  { id:'p_strike', year:null, yearMin:3, yearMax:14, weight:34, category:'crisis', title:'노조 파업 위기',
+    env:{ tags:['labor'] },
+    requires:{ statsMax:{ morale:42 } },
+    description:'누적된 불만으로 직원들이 파업을 예고했습니다. 생산 라인이 멈추면 매출 타격이 불가피합니다.',
+    decisions:[
+      { domain:'hr', question:'노사 갈등에 어떻게 대응하나요?', options:[
+        { text:'임금 인상과 복지 강화로 화답한다', base:{cash:-28,morale:28,reputation:8}, sub:{hr:16}, tags:['hr-invest','culture'] },
+        { text:'강경 대응으로 파업을 진압한다', base:{cash:-5,morale:-15,reputation:-20}, sub:{hr:-12}, tags:['hr-cut','layoff'], setFlags:{laborDispute:true} },
+        { text:'협상으로 절충안을 찾는다', base:{cash:-12,morale:12,reputation:3}, sub:{hr:8}, tags:['culture','hr-invest'] },
+      ]},
+      { domain:'strategy', question:'생산 차질에 대비한 전략은?', options:[
+        { text:'일부 물량을 외주로 돌린다', base:{cash:-8,revenue:-3}, sub:{ops:3}, tags:['outsource'] },
+        { text:'재고로 버티며 정상화를 기다린다', base:{revenue:-6}, sub:{strategy:2}, tags:['conservative','reserve'] },
+      ]},
+    ],
+  },
+
+  { id:'p_fraud', year:null, yearMin:5, yearMax:14, weight:40, category:'crisis', title:'회계 투명성 도마 위에',
+    env:{ tags:['audit'] },
+    requires:{ subMax:{ accounting:38 } },
+    description:'느슨한 회계 관행이 감독당국과 외부감사의 주목을 받기 시작했습니다. 잘못 대응하면 상장폐지까지 갈 수 있는 중대한 사안입니다.',
+    decisions:[
+      { domain:'accounting', question:'회계 이슈에 어떻게 대응하나요?', options:[
+        { text:'전면 재감사로 투명성을 회복한다', base:{cash:-15,reputation:6}, sub:{accounting:25}, tags:['transparent','audit'], setFlags:{fraudRisk:0} },
+        { text:'내부 통제 시스템을 보강한다', base:{cash:-8}, sub:{accounting:15,mis:4}, tags:['audit','transparent'] },
+        { text:'문제를 덮고 넘어간다', base:{}, sub:{accounting:-12}, tags:['opaque','aggressive-accounting'], setFlags:{fraudRisk:3} },
+      ]},
+      { domain:'finance', question:'재무 신뢰 회복 방안은?', options:[
+        { text:'배당을 줄이고 재무를 정비한다', base:{cash:10}, sub:{finance:8}, tags:['reserve','finance-tight'] },
+        { text:'IR을 강화해 투자자를 설득한다', base:{cash:-6,reputation:5}, sub:{finance:4}, tags:['transparent'] },
+      ]},
+    ],
+  },
+
+  { id:'p_ipo', year:null, yearMin:6, yearMax:13, weight:36, category:'growth', title:'상장(IPO) 압박',
+    env:{ tags:['ipo'] },
+    requires:{ flags:{ vcFunded:true } },
+    description:'초기 투자자들이 출구를 원합니다. 기업공개(IPO)를 통해 대규모 자금을 조달할 기회이자, 시장의 냉정한 평가를 받는 시험대입니다.',
+    decisions:[
+      { domain:'finance', question:'상장을 추진하나요?', options:[
+        { text:'공격적으로 IPO를 추진한다', base:{cash:55,revenue:5}, sub:{finance:8}, tags:['equity','growth'], setFlags:{ipoDone:true} },
+        { text:'기업가치를 더 키운 뒤 상장한다', base:{cash:-5,revenue:6}, sub:{finance:5,strategy:4}, tags:['conservative','growth'] },
+        { text:'상장 대신 전략적 투자자를 유치한다', base:{cash:30}, sub:{finance:6}, tags:['equity'] },
+      ]},
+      { domain:'accounting', question:'상장 준비 회계는?', options:[
+        { text:'엄격한 회계 기준을 적용한다', base:{cash:-8,reputation:8}, sub:{accounting:14}, tags:['transparent','audit'] },
+        { text:'실적을 최대한 좋게 포장한다', base:{revenue:8}, sub:{accounting:-10}, tags:['opaque','aggressive-accounting'], setFlags:{fraudRisk:2} },
+      ]},
+      { domain:'mis', question:'공시·관리 시스템은?', options:[
+        { text:'전사 ERP·공시 시스템을 구축한다', base:{cash:-15}, sub:{mis:14}, tags:['mis-invest','data'] },
+        { text:'외부 대행으로 최소 대응한다', base:{cash:-4}, sub:{mis:2}, tags:['mis-cut'] },
+      ]},
+    ],
+  },
+
+  { id:'p_recall', year:null, yearMin:4, yearMax:14, weight:34, category:'crisis', title:'제품 품질 결함 발생',
+    env:{ tags:['quality'] },
+    requires:{ subMax:{ ops:40 } },
+    description:'주력 제품에서 결함이 발견되어 소비자 불만과 언론 보도가 이어지고 있습니다. 신속하고 진정성 있는 대응이 필요합니다.',
+    decisions:[
+      { domain:'ops', question:'품질 문제에 어떻게 대응하나요?', options:[
+        { text:'전량 리콜하고 품질을 전면 개선한다', base:{cash:-30,reputation:12}, sub:{ops:18}, tags:['quality-up','capex'] },
+        { text:'해당 로트만 교환해 준다', base:{cash:-10,reputation:-3}, sub:{ops:6}, tags:['quality-up'] },
+        { text:'문제를 축소하고 조용히 넘긴다', base:{cash:-3,reputation:-18}, sub:{ops:-8}, tags:['opaque'], setFlags:{qualityScandal:true} },
+      ]},
+      { domain:'marketing', question:'대외 커뮤니케이션은?', options:[
+        { text:'공개 사과와 보상안을 발표한다', base:{cash:-8,reputation:10}, sub:{marketing:8}, tags:['brand','transparent'] },
+        { text:'대응을 최소화한다', base:{reputation:-6}, sub:{marketing:-4}, tags:['marketing-cut','opaque'] },
+      ]},
+    ],
+  },
+
+  { id:'p_breach', year:null, yearMin:5, yearMax:14, weight:34, category:'crisis', title:'고객 정보 유출 사고',
+    env:{ tags:['security'] },
+    requires:{ subMax:{ mis:40 } },
+    description:'낙후된 보안 체계를 틈타 고객 정보가 유출되는 사고가 발생했습니다. 신뢰 회복과 재발 방지가 시급합니다.',
+    decisions:[
+      { domain:'mis', question:'보안 사고에 어떻게 대응하나요?', options:[
+        { text:'대대적 보안 투자로 시스템을 재구축한다', base:{cash:-25,reputation:8}, sub:{mis:20}, tags:['mis-invest','security','data'] },
+        { text:'긴급 패치로 우선 막는다', base:{cash:-8}, sub:{mis:8,accounting:-2}, tags:['mis-invest'] },
+        { text:'사고를 외부에 알리지 않는다', base:{reputation:-16}, sub:{mis:-6}, tags:['opaque'], setFlags:{breachHidden:true} },
+      ]},
+      { domain:'accounting', question:'사고 처리·공시는?', options:[
+        { text:'투명하게 공개하고 피해를 보상한다', base:{cash:-12,reputation:10}, sub:{accounting:10}, tags:['transparent'] },
+        { text:'법적 책임만 최소한으로 진다', base:{cash:-4,reputation:-4}, sub:{accounting:-4}, tags:['opaque'] },
+      ]},
+    ],
+  },
+
+  { id:'p_ma', year:null, yearMin:6, yearMax:14, weight:18, category:'growth', title:'인수합병(M&A) 기회',
+    env:{ tags:['ma'] },
+    requires:{ statsMin:{ cash:60 } },
+    description:'유망한 경쟁사가 매물로 나왔습니다. 잘 인수하면 단숨에 시장 지위를 끌어올릴 수 있지만, 통합 실패의 위험도 큽니다.',
+    decisions:[
+      { domain:'strategy', question:'M&A를 추진하나요?', options:[
+        { text:'적극 인수해 시장을 장악한다', base:{cash:-45,revenue:22}, sub:{strategy:12}, tags:['ma','aggressive','growth'] },
+        { text:'지분 일부만 전략적으로 투자한다', base:{cash:-18,revenue:8}, sub:{strategy:6}, tags:['growth'] },
+        { text:'인수를 포기하고 내실에 집중한다', base:{cash:5}, sub:{strategy:4,ops:3}, tags:['conservative','focus'] },
+      ]},
+      { domain:'hr', question:'인수 후 조직 통합은?', options:[
+        { text:'양사 문화 융합에 공들인다', base:{cash:-10,morale:6}, sub:{hr:12}, tags:['hr-invest','culture'] },
+        { text:'중복 인력을 빠르게 정리한다', base:{cash:12,morale:-12}, sub:{hr:-8}, tags:['layoff','hr-cut'] },
+      ]},
+      { domain:'mis', question:'시스템 통합은?', options:[
+        { text:'통합 IT 시스템을 신속 구축한다', base:{cash:-15}, sub:{mis:12}, tags:['mis-invest','mis-automation','data'] },
+        { text:'기존 시스템을 병행 운영한다', base:{cash:-3,revenue:-3}, sub:{mis:-4}, tags:['mis-cut'] },
+      ]},
+    ],
+  },
+
+  { id:'p_regulation', year:null, yearMin:4, yearMax:14, weight:18, category:'market', title:'규제 강화',
+    env:{ tags:['regulation'] },
+    description:'정부가 업계 규제를 대폭 강화했습니다. 준법 비용이 늘지만, 잘 대응하면 신뢰를 높일 수 있습니다.',
+    decisions:[
+      { domain:'accounting', question:'규제 대응 방식은?', options:[
+        { text:'선제적으로 준법 체계를 구축한다', base:{cash:-15,reputation:10}, sub:{accounting:16}, tags:['transparent','audit'] },
+        { text:'최소 요건만 맞춘다', base:{cash:-4}, sub:{accounting:4}, tags:['conservative'] },
+        { text:'규제 회피 방안을 찾는다', base:{cash:5,reputation:-8}, sub:{accounting:-10}, tags:['opaque'], setFlags:{fraudRisk:1} },
+      ]},
+      { domain:'strategy', question:'규제 환경 속 전략은?', options:[
+        { text:'규제를 진입장벽으로 활용한다', base:{cash:-10,revenue:8}, sub:{strategy:8}, tags:['focus'] },
+        { text:'규제가 약한 시장으로 다변화한다', base:{cash:-12,revenue:6}, sub:{strategy:6}, tags:['diversify','global'] },
+      ]},
+    ],
+  },
+
+  { id:'p_talent', year:null, yearMin:2, yearMax:13, weight:22, category:'org', title:'인재 확보 전쟁',
+    env:{ tags:['talent'] },
+    description:'업계 전반에 인재 쟁탈전이 벌어지고 있습니다. 핵심 인력을 지키고 끌어올 방법을 고민해야 합니다.',
+    decisions:[
+      { domain:'hr', question:'인재 전략을 선택하세요.', options:[
+        { text:'파격적 보상으로 인재를 끌어온다', base:{cash:-20,morale:10}, sub:{hr:16}, tags:['hr-invest','talent'] },
+        { text:'성장·교육 기회로 승부한다', base:{cash:-10,morale:8}, sub:{hr:12}, tags:['hr-invest','culture','talent'] },
+        { text:'당장은 비용을 아낀다', base:{cash:10,morale:-8}, sub:{hr:-8}, tags:['hr-cut','lean'] },
+      ]},
+      { domain:'mis', question:'일하는 방식 혁신은?', options:[
+        { text:'스마트워크·자동화를 도입한다', base:{cash:-12,morale:5}, sub:{mis:12}, tags:['mis-automation','mis-invest'] },
+        { text:'기존 방식을 유지한다', base:{}, sub:{mis:-3}, tags:['mis-cut'] },
+      ]},
+    ],
+  },
+
+  { id:'p_global', year:null, yearMin:6, yearMax:14, weight:18, category:'growth', title:'해외 시장 진출 기회',
+    env:{ tags:['global'] },
+    requires:{ statsMin:{ revenue:55 } },
+    description:'해외에서 우리 제품에 대한 관심이 커지고 있습니다. 글로벌 진출은 큰 기회이지만, 현지화와 관리 역량이 관건입니다.',
+    decisions:[
+      { domain:'strategy', question:'해외 진출 방식은?', options:[
+        { text:'직접 진출로 거점을 세운다', base:{cash:-35,revenue:20}, sub:{strategy:12}, tags:['global','aggressive','growth'] },
+        { text:'현지 파트너와 합작한다', base:{cash:-15,revenue:12}, sub:{strategy:8}, tags:['global','growth'] },
+        { text:'수출 위주로 신중히 접근한다', base:{cash:-5,revenue:6}, sub:{strategy:4}, tags:['global','conservative'] },
+      ]},
+      { domain:'mis', question:'글로벌 운영 인프라는?', options:[
+        { text:'글로벌 통합 시스템을 구축한다', base:{cash:-18}, sub:{mis:14}, tags:['mis-invest','mis-automation','data'] },
+        { text:'현지에 운영을 맡긴다', base:{cash:-5,revenue:-4}, sub:{mis:-3}, tags:['outsource','mis-cut'] },
+      ]},
+      { domain:'marketing', question:'현지 마케팅은?', options:[
+        { text:'현지 맞춤 브랜드 전략을 편다', base:{cash:-15,reputation:6}, sub:{marketing:12}, tags:['marketing-push','brand'] },
+        { text:'본사 브랜드를 그대로 가져간다', base:{cash:-6}, sub:{marketing:3}, tags:['brand'] },
+      ]},
+    ],
+  },
+
+  { id:'p_esg', year:null, yearMin:7, yearMax:14, weight:18, category:'org', title:'ESG·지속가능경영 요구',
+    env:{ tags:['esg'] },
+    description:'투자자와 사회가 환경·사회·지배구조(ESG) 경영을 요구합니다. 비용이 들지만 장기 신뢰의 토대가 됩니다.',
+    decisions:[
+      { domain:'strategy', question:'ESG에 어떻게 접근하나요?', options:[
+        { text:'전사 ESG 경영을 본격 도입한다', base:{cash:-20,reputation:16}, sub:{strategy:8,accounting:6}, tags:['esg','brand','transparent'] },
+        { text:'핵심 영역만 선별 대응한다', base:{cash:-8,reputation:6}, sub:{strategy:4}, tags:['esg'] },
+        { text:'당장은 보여주기 식으로 대응한다', base:{cash:-3,reputation:-6}, sub:{accounting:-6}, tags:['opaque'] },
+      ]},
+      { domain:'ops', question:'친환경 생산 전환은?', options:[
+        { text:'친환경 설비로 전환 투자한다', base:{cash:-22,reputation:8}, sub:{ops:12}, tags:['capex','quality-up'] },
+        { text:'단계적으로 개선한다', base:{cash:-8}, sub:{ops:5}, tags:['quality-up'] },
+      ]},
+    ],
+  },
+
+  { id:'p_digital_lead', year:null, yearMin:7, yearMax:14, weight:30, category:'opportunity', title:'디지털 전환 선도 기회',
+    env:{ tags:['techshift'] },
+    requires:{ subMin:{ mis:65 } },
+    description:'그동안 쌓아온 탄탄한 IT 역량 덕분에, 업계의 디지털 전환을 선도할 절호의 기회가 찾아왔습니다.',
+    decisions:[
+      { domain:'mis', question:'데이터·AI 역량을 어떻게 키우나요?', options:[
+        { text:'AI·데이터 기반 신사업을 출범한다', base:{cash:-22,revenue:20}, sub:{mis:16}, tags:['ai','data','mis-invest','growth'] },
+        { text:'내부 운영 최적화에 집중한다', base:{cash:-10,revenue:8}, sub:{mis:10,ops:6}, tags:['automate','mis-automation'] },
+      ]},
+      { domain:'strategy', question:'사업 모델 혁신은?', options:[
+        { text:'플랫폼·구독 모델로 전환한다', base:{cash:-15,revenue:16}, sub:{strategy:12}, tags:['growth','aggressive'] },
+        { text:'기존 모델을 디지털로 보강한다', base:{cash:-6,revenue:6}, sub:{strategy:6}, tags:['focus'] },
+      ]},
+      { domain:'marketing', question:'디지털 마케팅은?', options:[
+        { text:'데이터 기반 정밀 마케팅을 한다', base:{cash:-10,revenue:12}, sub:{marketing:12}, tags:['digital-marketing','marketing-push','data'] },
+        { text:'기존 채널을 유지한다', base:{cash:-3}, sub:{marketing:2}, tags:['brand'] },
+      ]},
+    ],
+  },
+
+  /* ── filler (항상 자격) ── */
+  { id:'f_routine1', year:null, weight:8, category:'org', title:'연례 경영 점검', filler:true,
+    env:{ tags:[] },
+    description:'큰 사건 없이 한 해가 흘러갑니다. 일상적인 경영 현안들 속에서도 결정은 쌓여 회사의 체질을 만듭니다.',
+    decisions:[
+      { domain:'finance', question:'올해 재무 운용 기조는?', options:[
+        { text:'안정적으로 현금을 비축한다', base:{cash:12}, sub:{finance:6}, tags:['reserve','finance-tight'] },
+        { text:'성장에 재투자한다', base:{cash:-12,revenue:8}, sub:{finance:-2}, tags:['finance-loose'] },
+      ]},
+      { domain:'hr', question:'조직 운영은?', options:[
+        { text:'복지·교육을 강화한다', base:{cash:-8,morale:8}, sub:{hr:8}, tags:['hr-invest','culture'] },
+        { text:'효율 중심으로 운영한다', base:{cash:6,morale:-4}, sub:{hr:-2,ops:3}, tags:['lean','hr-cut'] },
+      ]},
+      { domain:'marketing', question:'마케팅은?', options:[
+        { text:'브랜드를 꾸준히 다진다', base:{cash:-8,reputation:6}, sub:{marketing:6}, tags:['brand'] },
+        { text:'예산을 아낀다', base:{cash:5,revenue:-4}, sub:{marketing:-3}, tags:['marketing-cut'] },
+      ]},
+    ],
+  },
+  { id:'f_routine2', year:null, weight:8, category:'org', title:'신제품 라인업 결정', filler:true,
+    env:{ tags:[] },
+    description:'새로운 회계연도, 신제품·서비스 라인업을 정할 시기입니다. 자원을 어디에 투입할지 결정하세요.',
+    decisions:[
+      { domain:'strategy', question:'신제품 전략은?', options:[
+        { text:'혁신 제품에 과감히 베팅한다', base:{cash:-18,revenue:14}, sub:{strategy:8}, tags:['aggressive','growth'] },
+        { text:'검증된 라인을 확장한다', base:{cash:-8,revenue:8}, sub:{strategy:5}, tags:['conservative','focus'] },
+      ]},
+      { domain:'ops', question:'생산 대응은?', options:[
+        { text:'설비를 늘려 대응한다', base:{cash:-20}, sub:{ops:12}, tags:['capex','quality-up'] },
+        { text:'기존 라인을 효율화한다', base:{cash:-5}, sub:{ops:6,mis:4}, tags:['automate','lean'] },
+      ]},
+      { domain:'mis', question:'운영 시스템은?', options:[
+        { text:'데이터 분석 역량을 키운다', base:{cash:-10,revenue:5}, sub:{mis:10}, tags:['mis-invest','data'] },
+        { text:'현 수준을 유지한다', base:{}, sub:{mis:-2}, tags:['mis-cut'] },
+      ]},
+    ],
+  },
+  { id:'f_routine3', year:null, weight:8, category:'market', title:'고객 트렌드 변화', filler:true,
+    env:{ tags:[] },
+    description:'고객의 취향과 구매 패턴이 서서히 바뀌고 있습니다. 변화를 읽고 대응하는 한 해가 되어야 합니다.',
+    decisions:[
+      { domain:'marketing', question:'트렌드 대응 마케팅은?', options:[
+        { text:'트렌드를 선도하는 캠페인을 한다', base:{cash:-15,revenue:12,reputation:5}, sub:{marketing:12}, tags:['marketing-push','brand'] },
+        { text:'데이터로 수요를 정밀 분석한다', base:{cash:-8,revenue:6}, sub:{marketing:6,mis:5}, tags:['digital-marketing','data'] },
+      ]},
+      { domain:'ops', question:'제품/서비스 대응은?', options:[
+        { text:'품질·서비스를 끌어올린다', base:{cash:-12,reputation:6}, sub:{ops:10}, tags:['quality-up'] },
+        { text:'원가 절감에 집중한다', base:{cash:8,reputation:-3}, sub:{ops:4}, tags:['lean'] },
+      ]},
+      { domain:'finance', question:'재원 배분은?', options:[
+        { text:'마케팅·R&D에 더 투입한다', base:{cash:-10,revenue:6}, sub:{finance:-2}, tags:['finance-loose'] },
+        { text:'수익성 관리를 우선한다', base:{cash:10}, sub:{finance:8}, tags:['finance-tight','reserve'] },
+      ]},
+    ],
+  },
+];
+
+/* =========================================================
+   DATA: SYNERGIES  (조합 = 결과)
+   when(picks, state, envSet) -> bool   ;  picks.tags 는 Set
+   ========================================================= */
+const has = (p,t)=>p.tags.has(t);
+const SYNERGIES = [
+  { id:'mkt_no_capacity', type:'conflict',
+    when:(p,s)=> has(p,'marketing-push') && !has(p,'capex') && !has(p,'quality-up') && s.sub.ops<52,
+    effects:{revenue:-12,reputation:-10},
+    msg:'공격적 마케팅으로 수요는 폭증했지만 생산·서비스 역량이 따라가지 못해 품절과 배송 지연이 속출했습니다. 고객 불만이 커졌습니다.' },
+
+  { id:'mkt_with_capacity', type:'synergy',
+    when:(p)=> has(p,'marketing-push') && (has(p,'capex')||has(p,'quality-up')),
+    effects:{revenue:12,reputation:6},
+    msg:'탄탄한 생산·품질 기반 위에 공격적 마케팅이 더해져, 늘어난 수요를 온전히 매출로 흡수했습니다.' },
+
+  { id:'hr_mis', type:'synergy',
+    when:(p)=> has(p,'hr-invest') && (has(p,'mis-automation')||has(p,'mis-invest')),
+    effects:{morale:8,revenue:6}, sub:{hr:5},
+    msg:'인재 투자와 디지털·자동화가 맞물려 업무 효율과 직원 몰입이 동반 상승했습니다.' },
+
+  { id:'tight_capex', type:'conflict',
+    when:(p)=> has(p,'finance-tight') && has(p,'capex'),
+    effects:{cash:-12}, sub:{ops:-4},
+    msg:'긴축 기조 속 대규모 설비 투자를 강행하면서 자금 흐름에 압박이 생기고, 투자 효율도 반감되었습니다.' },
+
+  { id:'opaque_aggr', type:'conflict',
+    when:(p)=> has(p,'opaque') && (has(p,'debt')||has(p,'aggressive-accounting')),
+    effects:{reputation:-8}, sub:{accounting:-8}, setFlags:{fraudRisk:1},
+    msg:'불투명한 회계와 무리한 재무가 겹치며 분식 의혹의 불씨가 커졌습니다. 시장의 의심 어린 시선이 따라붙습니다.' },
+
+  { id:'hrcut_aggr', type:'conflict',
+    when:(p)=> has(p,'hr-cut') && has(p,'aggressive'),
+    effects:{morale:-12}, sub:{ops:-5,hr:-4},
+    msg:'인력은 줄이면서 공격적 목표를 밀어붙이자 핵심 인력의 번아웃과 이탈이 나타났습니다.' },
+
+  { id:'mis_data', type:'synergy',
+    when:(p)=> has(p,'mis-invest') && has(p,'data'),
+    effects:{revenue:8}, sub:{mis:6},
+    msg:'데이터 기반 의사결정 체계가 자리 잡으며 시장 대응 속도와 정확도가 크게 좋아졌습니다.' },
+
+  { id:'premium_brand', type:'synergy',
+    when:(p)=> has(p,'premium') && (has(p,'brand')||has(p,'quality-up')),
+    effects:{revenue:8,reputation:10}, sub:{marketing:5},
+    msg:'프리미엄 포지셔닝과 브랜드·품질 투자가 시너지를 내며 고가 시장에서 확고한 입지를 다졌습니다.' },
+
+  { id:'price_premium_conflict', type:'conflict',
+    when:(p)=> has(p,'price-cut') && has(p,'premium'),
+    effects:{reputation:-8}, sub:{marketing:-4},
+    msg:'가격 인하와 프리미엄 전략이 충돌해 브랜드 포지셔닝에 혼선이 생겼습니다.' },
+
+  { id:'global_mis', type:'synergy',
+    when:(p)=> has(p,'global') && (has(p,'mis-automation')||has(p,'mis-invest')),
+    effects:{revenue:10}, sub:{strategy:4},
+    msg:'글로벌 통합 시스템이 해외 운영을 든든히 받쳐주며 확장이 안정적으로 자리 잡았습니다.' },
+
+  { id:'global_no_mis', type:'conflict',
+    when:(p)=> has(p,'global') && (has(p,'mis-cut')||has(p,'outsource')),
+    effects:{cash:-10,revenue:-5},
+    msg:'해외 운영을 받쳐줄 관리 시스템이 부실해, 현지 통제력 부족으로 비용이 새어 나갔습니다.' },
+
+  { id:'transparent_audit', type:'synergy',
+    when:(p)=> has(p,'transparent') && has(p,'audit'),
+    effects:{reputation:8}, sub:{accounting:6},
+    msg:'투명한 공시와 철저한 감사 체계가 결합해 시장과 투자자의 두터운 신뢰를 얻었습니다.' },
+
+  { id:'layoff_dividend', type:'conflict',
+    when:(p)=> has(p,'layoff') && has(p,'finance-loose'),
+    effects:{reputation:-10,morale:-6},
+    msg:'정리해고와 공격적 재무 운용이 동시에 알려지며 여론이 악화되고 내부 사기가 떨어졌습니다.' },
+
+  { id:'boom_aggr', type:'synergy',
+    when:(p,s,env)=> env.has('boom') && has(p,'aggressive') && has(p,'finance-loose'),
+    effects:{revenue:14,cash:10},
+    msg:'호황 국면에 과감한 투자와 적극적 재무가 맞아떨어져 폭발적인 성장을 거뒀습니다.' },
+
+  { id:'recession_aggr', type:'conflict',
+    when:(p,s,env)=> env.has('recession') && has(p,'aggressive') && has(p,'finance-loose'),
+    effects:{cash:-15},
+    msg:'침체기에 무리한 확장을 밀어붙이다 자금이 빠르게 소진되었습니다.' },
+
+  { id:'recession_reserve', type:'synergy',
+    when:(p,s,env)=> env.has('recession') && has(p,'reserve') && has(p,'finance-tight'),
+    effects:{cash:8}, sub:{finance:5},
+    msg:'침체기에 현금을 단단히 비축한 보수적 운영이 회사를 안전지대에 올려놓았습니다.' },
+
+  { id:'quality_supply', type:'synergy',
+    when:(p)=> has(p,'quality-up') && (has(p,'capex')||has(p,'automate')),
+    effects:{reputation:6}, sub:{ops:6},
+    msg:'품질 향상과 생산 투자가 결합해 제품 신뢰도와 생산 안정성이 함께 올라갔습니다.' },
+
+  { id:'overextend', type:'conflict',
+    when:(p)=> has(p,'diversify') && has(p,'global') && has(p,'aggressive'),
+    effects:{cash:-10}, sub:{strategy:-4},
+    msg:'다각화·해외·공격 전략을 한꺼번에 펴면서 역량이 분산되어 곳곳에서 과부하가 걸렸습니다.' },
+
+  { id:'talent_culture', type:'synergy',
+    when:(p)=> has(p,'talent') && has(p,'culture'),
+    effects:{morale:10}, sub:{hr:8},
+    msg:'좋은 인재와 좋은 문화가 선순환을 이루며 조직이 활력을 얻고 인재 유출이 줄었습니다.' },
+
+  { id:'ai_ops', type:'synergy',
+    when:(p)=> (has(p,'ai')||has(p,'mis-automation')) && (has(p,'automate')||has(p,'lean')),
+    effects:{cash:6}, sub:{ops:5,mis:3},
+    msg:'AI·자동화와 운영 효율화가 맞물려 원가 구조가 눈에 띄게 개선되었습니다.' },
+
+  { id:'pricecut_push', type:'synergy',
+    when:(p)=> has(p,'price-cut') && has(p,'marketing-push'),
+    effects:{revenue:10,cash:-6},
+    msg:'공격적 가격·마케팅 조합으로 단기 점유율을 빠르게 끌어올렸습니다(다만 수익성은 부담).' },
+
+  { id:'digital_mkt_data', type:'synergy',
+    when:(p)=> has(p,'digital-marketing') && (has(p,'data')||has(p,'mis-invest')),
+    effects:{revenue:8,reputation:4}, sub:{marketing:5,mis:3},
+    msg:'데이터와 디지털 마케팅이 정밀하게 결합해 마케팅 투자 대비 효율이 크게 높아졌습니다.' },
+];
+
+/* =========================================================
+   DATA: ENDINGS
+   - 실패 엔딩(id 직접 트리거) + 15년 종료 엔딩(condition 우선순위)
+   ========================================================= */
+const FAIL_ENDINGS = {
+  bankrupt:    { emoji:'💸', title:'파산', tone:'bad',
+    text:'자금이 바닥났습니다. 직원들에게 줄 급여도, 거래처에 갚을 대금도 남지 않았습니다. 한때 꿈을 안고 세운 회사는 법정관리에 들어갔고, CEO의 여정은 여기서 멈췄습니다. 현금 흐름은 경영의 산소였습니다.' },
+  org_collapse:{ emoji:'🏚️', title:'조직 붕괴', tone:'bad',
+    text:'핵심 인력이 모두 회사를 떠났습니다. 남은 것은 텅 빈 사무실과 멈춰버린 사업뿐. 숫자는 잠시 좋아 보였을지 몰라도, 사람을 잃은 조직은 끝내 버티지 못했습니다.' },
+  brand_collapse:{ emoji:'📉', title:'브랜드 신뢰 붕괴', tone:'bad',
+    text:'거듭된 사고와 불성실한 대응으로 고객과 사회의 신뢰가 완전히 무너졌습니다. 불매와 외면 속에 매출은 곤두박질쳤고, 회사는 시장에서 잊혀졌습니다.' },
+  fraud_caught:{ emoji:'⚖️', title:'분식회계 적발 · 상장폐지', tone:'bad',
+    text:'덮어두었던 회계 부정이 끝내 드러났습니다. 감독당국의 조사와 상장폐지, 그리고 법적 책임이 뒤따랐습니다. 단기 실적을 위해 투명성을 포기한 대가는 회사 전체였습니다.' },
+};
+
+const END_ENDINGS = [
+  { id:'global_tech', emoji:'🚀', title:'글로벌 테크 리더', tone:'good',
+    cond:(s)=> s.stats.revenue>82 && s.sub.mis>78 && s.sub.marketing>68 && s.stats.cash>125,
+    text:'기술과 시장을 모두 거머쥐었습니다. 데이터·디지털 역량을 무기로 세계 시장을 선도하는 글로벌 기업으로 우뚝 섰습니다. 당신의 회사는 업계의 기준이 되었습니다.' },
+  { id:'respected', emoji:'🏛️', title:'신뢰받는 투명경영 기업', tone:'good',
+    cond:(s)=> s.stats.reputation>78 && s.sub.accounting>72,
+    text:'화려하진 않아도 단단했습니다. 투명한 경영과 두터운 신뢰로, 시장과 사회 모두가 존경하는 기업을 만들었습니다. 신뢰는 가장 오래가는 자산이었습니다.' },
+  { id:'best_workplace', emoji:'🤝', title:'최고의 일하기 좋은 기업', tone:'good',
+    cond:(s)=> s.stats.morale>78 && s.sub.hr>72,
+    text:'사람을 중심에 둔 경영이 결실을 맺었습니다. 직원이 자부심을 갖고 일하는 회사, 인재가 모여드는 회사로 자리 잡았습니다. 조직의 힘이 곧 회사의 힘이었습니다.' },
+  { id:'innovator', emoji:'💡', title:'혁신을 선도하는 기업', tone:'good',
+    cond:(s)=> s.sub.strategy>72 && s.sub.mis>70,
+    text:'끊임없는 전략적 혁신과 기술 투자로 시장의 변화를 앞서갔습니다. 남들이 따라오는 길을, 당신의 회사가 먼저 냈습니다.' },
+  { id:'solid_midcap', emoji:'🏢', title:'탄탄한 우량 중견기업', tone:'good',
+    cond:(s)=> s.stats.cash>90 && s.stats.revenue>60 && s.stats.morale>56 && s.stats.reputation>56,
+    text:'어느 한쪽에 치우치지 않고 균형 잡힌 경영을 펼쳤습니다. 위기에도 흔들리지 않는, 모두가 신뢰하는 탄탄한 우량기업으로 15년을 마무리했습니다.' },
+  { id:'steady', emoji:'🌱', title:'안정적인 기업', tone:'neutral',
+    cond:(s)=> s.stats.cash>40 && s.stats.revenue>45,
+    text:'큰 도약도, 큰 추락도 없었습니다. 묵묵히 제 길을 걸어 안정적으로 회사를 유지했습니다. 무난했지만, 더 큰 가능성에 대한 아쉬움도 남습니다.' },
+  { id:'fragile', emoji:'🪫', title:'위태로운 생존', tone:'bad',
+    cond:()=> true,
+    text:'간신히 15년을 버텼습니다. 여러 지표가 위태로운 수준이라 미래를 장담하기 어렵습니다. 생존했다는 것 자체가 성과이지만, 회사의 앞날에는 짙은 안개가 끼어 있습니다.' },
+];
+
+/* =========================================================
+   STATE
+   ========================================================= */
+let state = null;
+let selections = {};   // 현재 시나리오의 영역별 선택 {domain: optIdx}
+let lastResult = null; // 직전 결산 결과 (결과 패널/대시보드 delta용)
+
+function freshState(){
+  return {
+    year:1,
+    stats:{ ...CONFIG.START_STATS },
+    sub:{ ...CONFIG.START_SUB },
+    flags:{},
+    history:[],
+    seenScenarios:[],
+    phase:'scenario',
+    gameOver:false,
+    endingId:null,
+    pendingId:null,
+  };
+}
+
+/* =========================================================
+   ENGINE
+   ========================================================= */
+function clampStat(key,v){
+  if(key==='cash') return Math.round(v);          // 하한 없음(파산 가능)
+  return Math.max(0, Math.min(100, Math.round(v)));
+}
+function clampSub(v){ return Math.max(0, Math.min(100, Math.round(v))); }
+
+function addInto(acc,obj){ if(!obj) return; for(const k in obj){ acc[k]=(acc[k]||0)+obj[k]; } }
+function mergeFlags(target,src){
+  if(!src) return;
+  for(const k in src){
+    const v=src[k];
+    if(typeof v==='number' && typeof target[k]==='number') target[k]+=v;
+    else target[k]=v;
+  }
+}
+
+function isEligible(sc){
+  // 연차 조건
+  if(sc.year!=null){ if(sc.year!==state.year) return false; }
+  else {
+    if(sc.yearMin!=null && state.year<sc.yearMin) return false;
+    if(sc.yearMax!=null && state.year>sc.yearMax) return false;
+  }
+  // requires
+  const r=sc.requires;
+  if(r){
+    if(r.flags){ for(const k in r.flags){ if((state.flags[k]||false)!=r.flags[k]) return false; } }
+    if(r.statsMin){ for(const k in r.statsMin){ if(state.stats[k]<r.statsMin[k]) return false; } }
+    if(r.statsMax){ for(const k in r.statsMax){ if(state.stats[k]>r.statsMax[k]) return false; } }
+    if(r.subMin){ for(const k in r.subMin){ if(state.sub[k]<r.subMin[k]) return false; } }
+    if(r.subMax){ for(const k in r.subMax){ if(state.sub[k]>r.subMax[k]) return false; } }
+  }
+  if(sc.conditions && !sc.conditions(state)) return false;
+  return true;
+}
+
+function weightedPick(list){
+  const total=list.reduce((a,s)=>a+(s.weight||10),0);
+  let r=Math.random()*total;
+  for(const s of list){ r-=(s.weight||10); if(r<=0) return s; }
+  return list[list.length-1];
+}
+
+function pickScenario(){
+  const eligible = SCENARIOS.filter(sc=> isEligible(sc) && !state.seenScenarios.includes(sc.id));
+  // 고정 마일스톤(해당 연차 anchor)이 있으면 우선
+  const anchors = eligible.filter(sc=> sc.year===state.year);
+  let chosen;
+  if(anchors.length) chosen = anchors[0];
+  else {
+    const pool = eligible.filter(sc=> !sc.filler);
+    if(pool.length) chosen = weightedPick(pool);
+    else {
+      const fillers = eligible.filter(sc=> sc.filler);
+      chosen = fillers.length ? weightedPick(fillers)
+                              : weightedPick(SCENARIOS.filter(sc=>sc.filler)); // seen 무시 폴백
+    }
+  }
+  state.pendingId = chosen.id;
+  state.seenScenarios.push(chosen.id);
+  return chosen;
+}
+function currentScenario(){ return SCENARIOS.find(s=>s.id===state.pendingId); }
+
+function resolveYear(scenario){
+  const before = { ...state.stats };
+  const beforeSub = { ...state.sub };
+
+  // 연간 시장 압력(엔트로피): 투자하지 않으면 경쟁에 밀려 지표가 서서히 하락한다
+  state.stats.revenue=clampStat('revenue', state.stats.revenue-4);
+  state.stats.morale=clampStat('morale', state.stats.morale-3);
+  state.stats.reputation=clampStat('reputation', state.stats.reputation-3);
+  for(const k in DOMAINS) state.sub[k]=clampSub(state.sub[k]-3);
+
+  const baseAcc={}, subAcc={};
+  const tagSet=new Set();
+
+  scenario.decisions.forEach(d=>{
+    const opt = d.options[selections[d.domain]];
+    addInto(baseAcc, opt.base);
+    addInto(subAcc, opt.sub);
+    if(opt.setFlags) mergeFlags(state.flags, opt.setFlags);
+    (opt.tags||[]).forEach(t=>tagSet.add(t));
+  });
+
+  const p={tags:tagSet};
+  const envSet=new Set((scenario.env&&scenario.env.tags)||[]);
+  const triggered=[];
+  SYNERGIES.forEach(rule=>{
+    let hit=false;
+    try { hit = rule.when(p, state, envSet); } catch(e){ hit=false; }
+    if(hit){
+      addInto(baseAcc, rule.effects);
+      addInto(subAcc, rule.sub);
+      if(rule.setFlags) mergeFlags(state.flags, rule.setFlags);
+      triggered.push({ type:rule.type, msg:rule.msg });
+    }
+  });
+
+  // 적용
+  for(const k in baseAcc) state.stats[k]=clampStat(k, (state.stats[k]||0)+baseAcc[k]);
+  for(const k in subAcc) state.sub[k]=clampSub((state.sub[k]||0)+subAcc[k]);
+
+  // 연간 영업손익: 매출력·조직력·평판을 자금으로 환산(경영의 엔진)
+  const opIncome = Math.round((state.stats.revenue-48)*0.65 + (state.stats.morale-50)*0.1 + (state.stats.reputation-50)*0.1);
+  state.stats.cash = clampStat('cash', state.stats.cash + opIncome);
+
+  const statDeltas={}; METRICS.forEach(m=>statDeltas[m.key]=state.stats[m.key]-before[m.key]);
+  const subDeltas={}; for(const k in DOMAINS) subDeltas[k]=state.sub[k]-beforeSub[k];
+
+  const picksDetail = scenario.decisions.map(d=>({
+    domain:d.domain, text:d.options[selections[d.domain]].text
+  }));
+
+  state.history.push({
+    year:state.year, scenarioId:scenario.id, title:scenario.title,
+    picks:picksDetail, statDeltas, triggered:triggered.map(t=>t.type),
+  });
+
+  const over = checkGameOver();
+  return { statDeltas, subDeltas, triggered, scenario, over, opIncome };
+}
+
+function checkGameOver(){
+  if(state.stats.cash<0) return setOver('bankrupt');
+  if(state.stats.morale<=0) return setOver('org_collapse');
+  if(state.stats.reputation<=0) return setOver('brand_collapse');
+  if(state.sub.accounting<=0 || (state.flags.fraudRisk||0)>=5) return setOver('fraud_caught');
+  return false;
+}
+function setOver(id){ state.gameOver=true; state.endingId=id; state.phase='ending'; return true; }
+
+function computeEnding(){
+  for(const e of END_ENDINGS){ if(e.cond(state)){ state.endingId=e.id; return e; } }
+  state.endingId='fragile';
+  return END_ENDINGS.find(e=>e.id==='fragile');
+}
+function getEndingDef(id){
+  return FAIL_ENDINGS[id] || END_ENDINGS.find(e=>e.id===id);
+}
+
+/* =========================================================
+   HANDLERS
+   ========================================================= */
+function onSelectOption(domain, idx){
+  selections[domain]=idx;
+  save();
+  renderScenario();
+}
+
+function onSettle(){
+  const sc=currentScenario();
+  if(Object.keys(selections).length < sc.decisions.length) return;
+  lastResult = resolveYear(sc);
+  state.phase = state.gameOver ? 'ending' : 'result';
+  save();
+  if(state.gameOver) renderEnding(); else renderResult();
+  renderDashboard();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function onNext(){
+  state.year++;
+  lastResult=null;
+  if(state.year>CONFIG.MAX_YEAR){
+    computeEnding();
+    state.phase='ending';
+    save();
+    renderEnding();
+    renderDashboard();
+  } else {
+    selections={};
+    pickScenario();
+    state.phase='scenario';
+    save();
+    renderScenario();
+    renderDashboard();
+  }
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function restart(){
+  if(!confirm('지금까지의 경영 기록이 사라집니다. 새 게임을 시작할까요?')) return;
+  localStorage.removeItem(CONFIG.SAVE_KEY);
+  state=freshState();
+  selections={}; lastResult=null;
+  pickScenario();
+  document.getElementById('endingScreen').style.display='none';
+  document.getElementById('scenarioArea').style.display='block';
+  renderScenario(); renderDashboard();
+  window.scrollTo({top:0});
+}
+
+/* =========================================================
+   RENDER
+   ========================================================= */
+function lvClass(v){ return v>=66?'lv-hi':(v>=33?'lv-mid':'lv-lo'); }
+function cashLv(v){ return v<30?'lv-lo':(v<80?'lv-mid':'lv-hi'); }
+function fmtDelta(v){ return v>0?'+'+v:(v<0?''+v:'0'); }
+function deltaClass(v){ return v>0?'plus':(v<0?'minus':'zero'); }
+
+function renderDashboard(){
+  const d=lastResult?lastResult.statDeltas:null;
+  const sd=lastResult?lastResult.subDeltas:null;
+  let metricsHtml = METRICS.map(m=>{
+    const v=state.stats[m.key];
+    const pct = m.isCash ? Math.max(0,Math.min(100, v/200*100)) : v;
+    const fillLv = m.isCash ? cashLv(v) : lvClass(v);
+    const dv = d?d[m.key]:0;
+    const deltaTxt = (d && dv!==0) ? `<div class="m-delta ${dv>0?'plus':'minus'}">${dv>0?'▲':'▼'}${Math.abs(dv)}</div>` : `<div class="m-delta"></div>`;
+    const valColor = m.isCash ? (v<0?'color:var(--red)':(v<30?'color:var(--gold)':'')) : '';
+    return `<div class="metric-card">
+      <div class="m-name">${m.name}</div>
+      <div class="m-val" style="${valColor}">${v}${m.unit||''}</div>
+      ${deltaTxt}
+      <div class="stat-bar"><div class="stat-fill ${fillLv}" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+
+  let subHtml = Object.keys(DOMAINS).map(k=>{
+    const v=state.sub[k];
+    const dv = sd?sd[k]:0;
+    const mark = dv>0?'<span style="color:var(--green)">▲</span>':(dv<0?'<span style="color:var(--red)">▼</span>':'');
+    return `<div class="sub-cell">
+      <div class="s-name">${SUB_NAMES[k]}</div>
+      <div class="s-val">${v}${mark}</div>
+      <div class="sub-bar"><div class="stat-fill ${lvClass(v)}" style="width:${v}%"></div></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('dashboard').innerHTML = `
+    <div id="dash-head">
+      <div id="dash-title">🏢 ${CONFIG.COMPANY}</div>
+      <div id="dash-year">${state.gameOver?'경영 종료':state.year+'년차'} / ${CONFIG.MAX_YEAR}년</div>
+    </div>
+    <div class="metric-grid">${metricsHtml}</div>
+    <div id="sub-strip">${subHtml}</div>`;
+
+  const pf=document.getElementById('progressFill');
+  pf.style.width = Math.min(100, (state.year-1)/CONFIG.MAX_YEAR*100 + (state.phase==='ending'?100/CONFIG.MAX_YEAR:0)) + '%';
+  if(state.gameOver || state.phase==='ending') pf.style.width='100%';
+}
+
+function domBadge(domain){
+  const dm=DOMAINS[domain];
+  return `<span class="dom-badge" style="color:${dm.color};border-color:${dm.color};background:${dm.color}1a">${dm.label}</span>`;
+}
+
+function renderScenario(){
+  const sc=currentScenario();
+  const allSelected = Object.keys(selections).length===sc.decisions.length;
+
+  let decisionsHtml = sc.decisions.map(d=>{
+    const opts = d.options.map((o,i)=>{
+      const sel = selections[d.domain]===i ? ' selected' : '';
+      return `<button class="opt-btn${sel}" onclick="onSelectOption('${d.domain}',${i})">${o.text}</button>`;
+    }).join('');
+    return `<div class="decision">
+      <div class="dec-head">${domBadge(d.domain)}<span class="dec-q">${d.question}</span></div>
+      <div class="options">${opts}</div>
+    </div>`;
+  }).join('');
+
+  const catLabel={market:'시장',crisis:'위기',growth:'성장',opportunity:'기회',org:'조직'}[sc.category]||'';
+
+  document.getElementById('endingScreen').style.display='none';
+  document.getElementById('scenarioArea').style.display='block';
+  document.getElementById('scenarioArea').innerHTML = `
+    <div class="section-title">${state.year}년차 · 경영 의사결정</div>
+    <div class="scenario-card">
+      <div class="scn-header">
+        <div class="scn-badges">
+          <span class="scn-year">${state.year}년차</span>
+          <span class="cat-badge cat-${sc.category}">${catLabel}</span>
+        </div>
+        <div class="scn-title">${sc.title}</div>
+        <div class="scn-desc">${sc.description}</div>
+      </div>
+      <div class="scn-body">
+        <div class="section-title" style="margin-top:0">${sc.decisions.length}개 기능 영역 의사결정</div>
+        ${decisionsHtml}
+        <button class="settle-btn" ${allSelected?'':'disabled'} onclick="onSettle()">이번 해 경영 결산 ▶</button>
+        <div class="settle-hint">${allSelected?'결정들의 조합이 결과를 좌우합니다.':'모든 영역에서 하나씩 선택해야 결산할 수 있습니다.'}</div>
+      </div>
+    </div>`;
+}
+
+function renderResult(){
+  const r=lastResult;
+  const sc=r.scenario;
+
+  // 영역별 선택 요약
+  const picksHtml = sc.decisions.map(d=>{
+    return `<div class="syn-msg neutral"><span class="syn-tag" style="color:${DOMAINS[d.domain].color}">[${DOMAINS[d.domain].label}]</span>${d.options[selections[d.domain]].text}</div>`;
+  }).join('');
+
+  // 시너지/상충
+  const synHtml = r.triggered.length
+    ? r.triggered.map(t=>`<div class="syn-msg ${t.type}"><span class="syn-tag">${t.type==='synergy'?'시너지 ✦':'상충 ⚠'}</span>${t.msg}</div>`).join('')
+    : `<div class="syn-msg neutral">특별한 시너지나 상충 없이 무난하게 한 해가 마무리되었습니다.</div>`;
+
+  // 4지표 delta
+  const deltaCells = METRICS.map(m=>{
+    const dv=r.statDeltas[m.key];
+    return `<div class="delta-cell"><div class="d-name">${m.name}</div><div class="d-val ${deltaClass(dv)}">${fmtDelta(dv)}</div></div>`;
+  }).join('');
+
+  // 7기능 sub delta (변동 있는 것만)
+  const subChanges = Object.keys(DOMAINS).filter(k=>r.subDeltas[k]!==0)
+    .map(k=>`${SUB_NAMES[k]} <span class="${r.subDeltas[k]>0?'up':'down'}">${fmtDelta(r.subDeltas[k])}</span>`).join(' · ');
+
+  document.getElementById('scenarioArea').innerHTML = `
+    <div class="section-title">${r.scenario.title} · 결산 결과</div>
+    <div class="result-panel">
+      <h3>📋 의사결정 요약</h3>
+      ${picksHtml}
+      <h3 style="margin-top:14px;">⚡ 조합의 결과</h3>
+      ${synHtml}
+      ${r.opIncome!=null?`<div class="sub-delta-line">올해 영업 실적 — 자금 <span class="${r.opIncome>=0?'up':'down'}">${fmtDelta(r.opIncome)}억</span> 반영(매출·조직·평판 기반)</div>`:''}
+      <div class="delta-grid">${deltaCells}</div>
+      ${subChanges?`<div class="sub-delta-line">기능 역량 변화 — ${subChanges}</div>`:''}
+      <button class="primary" style="margin-top:14px;" onclick="onNext()">${state.year>=CONFIG.MAX_YEAR?'경영 평가 보기 ▶':'다음 해로 ▶'}</button>
+    </div>`;
+}
+
+function renderEnding(){
+  const def=getEndingDef(state.endingId);
+  const tone=def.tone;
+
+  const finalStats = METRICS.map(m=>{
+    const v=state.stats[m.key];
+    return `<div class="metric-card"><div class="m-name">${m.name}</div><div class="m-val">${v}${m.unit||''}</div>
+      <div class="stat-bar"><div class="stat-fill ${m.isCash?cashLv(v):lvClass(v)}" style="width:${m.isCash?Math.max(0,Math.min(100,v/200*100)):v}%"></div></div></div>`;
+  }).join('');
+
+  // 타임라인 회고 (주요 시너지/위기 위주, 최대 8개)
+  const notable = state.history.filter(h=>h.triggered.length>0);
+  const tlSource = (notable.length?notable:state.history).slice(-8);
+  const timeline = tlSource.map(h=>{
+    const key = h.picks[0] ? `[${DOMAINS[h.picks[0].domain].label}] ${h.picks[0].text}` : h.title;
+    const synNote = h.triggered.length ? ` <span style="color:${h.triggered.includes('conflict')?'var(--red)':'var(--green)'}">(${h.triggered.includes('conflict')?'난관':'시너지'})</span>` : '';
+    return `<div class="tl-item"><span class="tl-year">${h.year}년차</span>${h.title}${synNote}</div>`;
+  }).join('');
+
+  const finalYear = state.gameOver ? `${state.year}년차에 경영이 중단되었습니다.` : `15년의 임기를 완주했습니다.`;
+
+  document.getElementById('scenarioArea').style.display='none';
+  const es=document.getElementById('endingScreen');
+  es.style.display='block';
+  es.innerHTML = `
+    <div class="ending-emoji">${def.emoji}</div>
+    <div class="ending-title ${tone}">${def.title}</div>
+    <div class="ending-sub">${CONFIG.COMPANY} · ${finalYear}</div>
+    <div class="ending-text">${def.text}</div>
+    <div class="section-title">최종 경영 지표</div>
+    <div class="final-stats">${finalStats}</div>
+    <div class="timeline">
+      <h4>📜 경영 발자취</h4>
+      ${timeline||'<div class="tl-item">기록이 없습니다.</div>'}
+    </div>
+    <button class="primary" onclick="restart()">🔄 새 게임 시작</button>
+    <button class="ghost" onclick="restart()">처음부터 다시 도전하기</button>`;
+}
+
+/* =========================================================
+   STORAGE
+   ========================================================= */
+function save(){
+  try{
+    localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify({ ver:CONFIG.SAVE_VER, state, selections, lastResultMeta:null }));
+  }catch(e){}
+}
+function load(){
+  try{
+    const raw=localStorage.getItem(CONFIG.SAVE_KEY);
+    if(!raw) return false;
+    const data=JSON.parse(raw);
+    if(data.ver!==CONFIG.SAVE_VER || !data.state) return false;
+    state=data.state;
+    selections=data.selections||{};
+    return true;
+  }catch(e){ return false; }
+}
+
+/* =========================================================
+   INIT
+   ========================================================= */
+function init(){
+  const loaded=load();
+  if(!loaded){
+    state=freshState();
+    selections={};
+    pickScenario();
+  }
+  // 복원 시 phase에 맞춰 렌더
+  if(state.phase==='ending'){
+    if(!state.gameOver && state.endingId==null) computeEnding();
+    renderEnding();
+  } else if(state.phase==='result'){
+    // 직전 결산 효과는 이미 state에 반영됨. lastResult는 복원되지 않으므로
+    // 결과 화면을 다시 그리는 대신 다음 해로 진행시켜 효과 중복 적용을 방지한다.
+    lastResult=null;
+    onNext();
+    return;
+  } else {
+    if(!currentScenario()) pickScenario();
+    renderScenario();
+  }
+  renderDashboard();
+}
+
+init();
+</script>
+</body>
+</html>
