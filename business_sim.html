@@ -240,7 +240,7 @@ const CONFIG = {
 const METRICS = [
   { key:'cash',       name:'자금',   unit:'억', isCash:true },
   { key:'revenue',    name:'매출력', unit:'',   isCash:false },
-  { key:'profit',     name:'수익성', unit:'',   isCash:false },
+  { key:'profit',     name:'이익률', unit:'%',  isCash:false },
   { key:'morale',     name:'조직력', unit:'',   isCash:false },
   { key:'reputation', name:'평판',   unit:'',   isCash:false },
 ];
@@ -860,7 +860,7 @@ const END_ENDINGS = [
     text:'기술과 시장을 모두 거머쥐었습니다. 데이터·디지털 역량을 무기로 세계 시장을 선도하는 글로벌 기업으로 우뚝 섰습니다. 당신의 회사는 업계의 기준이 되었습니다.' },
   { id:'cash_cow', emoji:'💰', title:'고수익 알짜 기업', tone:'good',
     cond:(s)=> s.stats.profit>72 && s.stats.cash>120 && s.stats.revenue>52,
-    text:'규모를 키우기보다 내실을 택했습니다. 군더더기 없는 높은 수익성과 두둑한 현금을 갖춘, 누구나 탐내는 알짜 기업으로 자리 잡았습니다. 돈을 버는 법을 제대로 아는 회사입니다.' },
+    text:'규모를 키우기보다 내실을 택했습니다. 군더더기 없는 높은 이익률과 두둑한 현금을 갖춘, 누구나 탐내는 알짜 기업으로 자리 잡았습니다. 돈을 버는 법을 제대로 아는 회사입니다.' },
   { id:'respected', emoji:'🏛️', title:'신뢰받는 투명경영 기업', tone:'good',
     cond:(s)=> s.stats.reputation>78 && s.sub.accounting>72,
     text:'화려하진 않아도 단단했습니다. 투명한 경영과 두터운 신뢰로, 시장과 사회 모두가 존경하는 기업을 만들었습니다. 신뢰는 가장 오래가는 자산이었습니다.' },
@@ -1119,7 +1119,7 @@ function showStartScreen(){
       당신은 한 기업의 <b>CEO</b>입니다. 앞으로 <b>15년</b> 동안 매년 주어지는
       경영 환경 속에서 <b>전략·인사·재무·회계·마케팅·생산/서비스·MIS</b> 영역의
       의사결정을 내립니다.<br><br>
-      선택들의 <b>조합</b>이 시너지를 내거나 충돌하며 <b>자금·매출력·수익성·조직력·평판</b>을
+      선택들의 <b>조합</b>이 시너지를 내거나 충돌하며 <b>자금·매출력·이익률·조직력·평판</b>을
       움직이고, 그 결과가 다음 해의 위기와 기회로 이어집니다. 당신의 회사는 어떤 모습으로 남게 될까요?
     </div>
     <label class="name-label">회사명을 정해 주세요</label>
@@ -1273,7 +1273,7 @@ function renderResult(){
       ${picksHtml}
       <h3 style="margin-top:14px;">⚡ 조합의 결과</h3>
       ${synHtml}
-      ${r.opIncome!=null?`<div class="sub-delta-line">올해 영업 실적 — 자금 <span class="${r.opIncome>=0?'up':'down'}">${fmtDelta(r.opIncome)}억</span> 반영(매출·조직·평판 기반)</div>`:''}
+      ${r.opIncome!=null?`<div class="sub-delta-line">올해 영업이익 — 자금 <span class="${r.opIncome>=0?'up':'down'}">${fmtDelta(r.opIncome)}억</span> 반영(매출력 × 이익률)</div>`:''}
       <div class="delta-grid">${deltaCells}</div>
       ${subChanges?`<div class="sub-delta-line">기능 역량 변화 — ${subChanges}</div>`:''}
       <button class="primary" style="margin-top:14px;" onclick="onNext()">${state.year>=CONFIG.MAX_YEAR?'경영 평가 보기 ▶':'다음 해로 ▶'}</button>
